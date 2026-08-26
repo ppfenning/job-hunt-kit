@@ -495,8 +495,8 @@ function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;","
 function renderSkills(){
   const maxC=20;
   document.getElementById("haveList").innerHTML=SKILLS_HAVE.map(s=>`
-    <div class="skrow"><div class="top"><span class="nm">${esc(s.nm)}</span><span class="ct">${s.ct}/${SEED.postingsSurveyed||0} roles</span></div>
-    <div class="bar"><div class="fill" style="width:${Math.round(s.ct/maxC*100)}%"></div></div>
+    <div class="skrow"><div class="top"><span class="nm">${esc(s.nm)}</span><span class="ct">${SEED.postingsSurveyed?`${s.ct}/${SEED.postingsSurveyed} roles`:"not yet tallied"}</span></div>
+    <div class="bar"><div class="fill" style="width:${maxC?Math.round(s.ct/maxC*100):0}%"></div></div>
     <div class="note">${esc(s.note)}</div></div>`).join("");
   document.getElementById("gapList").innerHTML=SKILLS_GAP.map(s=>`
     <div class="skrow${s.prio?" prio":""}"><div class="top"><span class="nm">${esc(s.nm)}</span><span class="ct">${s.ct}/20 roles</span></div>
@@ -592,7 +592,7 @@ function render(){
     any=true;
     html+=`<section class="tier tier-${t.key}"><div class="tier-head"><span class="mark">${t.mark}</span><span class="desc">${t.desc}</span></div><div class="grid">${inTier.map(card).join("")}</div></section>`;
   });
-  board.innerHTML=any?html:`<p class="empty">No roles match these filters. Try clearing the search or status filter.</p>`;
+  board.innerHTML=any?html:(ROLES.length?`<p class="empty">No roles match these filters. Try clearing the search or status filter.</p>`:`<p class="empty">No roles seeded yet — add them to <code>roles.yml</code> and rebuild.</p>`);
   renderPipeline();
 }
 function renderPipeline(){
