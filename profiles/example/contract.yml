@@ -1,0 +1,39 @@
+# Contract / freelance leads, tracked separately from salaried roles
+# because the maths is different. Delete this file if you only want FTE —
+# the Contract tab renders empty rather than breaking.
+
+contractLeads:
+  - id: harbor-data-plat
+    co: Harbor Digital
+    channel: Agency          # Agency | Direct | Platform
+    role: Contract Platform Engineer
+    rate: $95/hr
+    structure: W-2           # W-2 | C2C | 1099
+    len: 6 mo
+    stage: Lead              # Lead | Screening | Submitted | Interviewing | Negotiating | Won | Passed
+    contact: Riley Chen — riley@example-harbor.com
+    notes: >
+      Inbound via LinkedIn. Remote, 6-month initial term with a stated
+      intent to extend. $95/hr W-2 is under the break-even below once you
+      carry your own benefits and unpaid time — counter or pass.
+
+# The playbook shown above the contract board. `stub` is the body text.
+contractPlaybook:
+  - h: The rate math
+    stub: >
+      What an hourly rate has to clear to beat a salaried offer once you
+      carry your own benefits, payroll tax, unpaid time, and utilization
+      risk. A rough W-2 break-even is your target salary ÷ 1,600 billable
+      hours, then add 25–30% for benefits you're now buying yourself.
+  - h: W-2 vs C2C vs 1099
+    stub: >
+      W-2 through an agency means they withhold and you may get minimal
+      benefits. C2C means you invoice through your own entity and carry
+      everything. 1099 sits between and is worth the most per hour because
+      it costs you the most in overhead.
+  - h: Questions before you quote
+    stub: >
+      Who is the end client, what is the bill rate, is there a
+      conversion clause, and how many hours per week are actually
+      guaranteed? A 6-month term at 20 hrs/week is a different job than the
+      same rate at 40.

@@ -1,0 +1,36 @@
+# Recruiter CRM. The board flags a contact as stale after 21 days without
+# contact, and warns when two recruiters have submitted you to the same
+# company — the conflict that can get an application thrown out.
+
+recruiters:
+  - id: jordan-fields
+    name: Jordan Fields
+    firm: Beacon Search
+    type: Agency          # Agency | Internal | Platform
+    track: FTE            # FTE | Contract | Both
+    email: jordan@example-search.com
+    phone: ""
+    linkedin: ""
+    lastContact: "2026-08-22"
+    nextTouch: "2026-08-29"
+    submissions:
+      - { co: Northwind Systems, date: "2026-08-20", outcome: Interviewing }
+    notes: >
+      Responsive, replies same day. Sourced the Northwind role. Confirm
+      before letting anyone else submit you there.
+
+  - id: sam-oyelaran
+    name: Sam Oyelaran
+    firm: Mesa Health
+    type: Internal
+    track: FTE
+    email: soyelaran@example-mesa.com
+    phone: ""
+    linkedin: ""
+    lastContact: "2026-08-11"
+    nextTouch: ""
+    submissions:
+      - { co: Mesa Health, date: "2026-08-11", outcome: Screening }
+    notes: >
+      In-house recruiter, not an agency. Slower to reply — two-week gaps
+      are normal here and not a signal of disinterest on their side.

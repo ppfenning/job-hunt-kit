@@ -1,0 +1,972 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="robots" content="noindex, nofollow">
+<title>{{TITLE}}</title>
+<style>
+  :root {
+    --bg:#F4F6F8; --surface:#FFFFFF; --surface-2:#EEF1F5; --line:#DFE4EA;
+    --ink:#171B21; --ink-2:#4A525E; --ink-3:#757F8C;
+    --accent:#0C7C8C; --accent-ink:#075965;
+    --gold:#B7862B; --gold-soft:#EFE0BC; --silver:#7C8794; --silver-soft:#DFE3E8; --bronze:#A96A3F; --bronze-soft:#EBD8C8;
+    --ok:#2E7D5B; --ok-soft:#D8ECE1; --warn:#B65A34; --warn-soft:#F1DDD2;
+    --st-applied:#2F6FB0; --st-screen:#7A5AA6; --st-interview:#B5852B; --st-offer:#2E7D5B; --st-passed:#9A5442; --st-saved:#4A7E86;
+    --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --maxw:1120px;
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --bg:#0D1015; --surface:#161A21; --surface-2:#1D222B; --line:#2A313C;
+    --ink:#E7EBF1; --ink-2:#A9B2BF; --ink-3:#767F8D;
+    --accent:#3FB6C9; --accent-ink:#7FD3E0;
+    --gold:#DDB55C; --gold-soft:#35301E; --silver:#AEB7C4; --silver-soft:#262C35; --bronze:#CE9160; --bronze-soft:#33261C;
+    --ok:#57C08E; --ok-soft:#16281F; --warn:#E08A5F; --warn-soft:#2E1D14;
+    --st-applied:#5E9BD8; --st-screen:#B79AD8; --st-interview:#E0B45C; --st-offer:#57C08E; --st-passed:#D4917B; --st-saved:#6FB3BD;
+  }}
+  :root[data-theme="light"]{--bg:#F4F6F8;--surface:#FFFFFF;--surface-2:#EEF1F5;--line:#DFE4EA;--ink:#171B21;--ink-2:#4A525E;--ink-3:#757F8C;--accent:#0C7C8C;--accent-ink:#075965;--gold:#B7862B;--gold-soft:#EFE0BC;--silver:#7C8794;--silver-soft:#DFE3E8;--bronze:#A96A3F;--bronze-soft:#EBD8C8;--ok:#2E7D5B;--ok-soft:#D8ECE1;--warn:#B65A34;--warn-soft:#F1DDD2;--st-applied:#2F6FB0;--st-screen:#7A5AA6;--st-interview:#B5852B;--st-offer:#2E7D5B;--st-passed:#9A5442;--st-saved:#4A7E86;}
+  :root[data-theme="dark"]{--bg:#0D1015;--surface:#161A21;--surface-2:#1D222B;--line:#2A313C;--ink:#E7EBF1;--ink-2:#A9B2BF;--ink-3:#767F8D;--accent:#3FB6C9;--accent-ink:#7FD3E0;--gold:#DDB55C;--gold-soft:#35301E;--silver:#AEB7C4;--silver-soft:#262C35;--bronze:#CE9160;--bronze-soft:#33261C;--ok:#57C08E;--ok-soft:#16281F;--warn:#E08A5F;--warn-soft:#2E1D14;--st-applied:#5E9BD8;--st-screen:#B79AD8;--st-interview:#E0B45C;--st-offer:#57C08E;--st-passed:#D4917B;--st-saved:#6FB3BD;}
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:clamp(20px,4vw,48px) clamp(16px,4vw,32px) 72px}
+
+  header .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:0 0 12px}
+  h1{font-size:clamp(27px,5vw,42px);line-height:1.05;margin:0 0 14px;letter-spacing:-.02em;font-weight:800;text-wrap:balance;max-width:20ch}
+  .lede{font-size:16.5px;color:var(--ink-2);margin:0 0 20px;max-width:64ch}
+  .lede b{color:var(--ink);font-weight:650}
+  .spec{font-family:var(--mono);font-size:12.5px;color:var(--ink-2);display:flex;flex-wrap:wrap;gap:8px 10px;margin:0 0 24px}
+  .spec span{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px 11px;white-space:nowrap}
+  .spec span b{color:var(--ink);font-weight:600}
+
+  /* pipeline summary */
+  .pipeline{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 22px}
+  .pill{font-family:var(--mono);font-size:12px;border:1px solid var(--line);border-radius:999px;padding:5px 11px;display:inline-flex;align-items:center;gap:7px;background:var(--surface)}
+  .pill .c{font-weight:700;font-variant-numeric:tabular-nums}
+  .pill .swatch{width:9px;height:9px;border-radius:50%}
+
+  /* panels */
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;margin:0 0 22px;overflow:hidden}
+  .panel>summary{cursor:pointer;list-style:none;padding:15px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-weight:700;font-size:15px}
+  .panel>summary::-webkit-details-marker{display:none}
+  .panel>summary .hint{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);font-weight:400}
+  .panel>summary .chev{transition:transform .2s;color:var(--ink-3)}
+  .panel[open]>summary .chev{transform:rotate(90deg)}
+  .panel .body{padding:4px 18px 18px}
+
+  .gap-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+  @media (max-width:720px){.gap-grid{grid-template-columns:1fr}}
+  .gap-col h3{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;margin:0 0 10px}
+  .gap-col.have h3{color:var(--ok)}
+  .gap-col.gap h3{color:var(--warn)}
+  .skrow{margin:0 0 9px}
+  .skrow .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:13px}
+  .skrow .nm{font-weight:600}
+  .skrow .ct{font-family:var(--mono);font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+  .skrow .bar{height:5px;border-radius:3px;background:var(--surface-2);margin:4px 0 2px;overflow:hidden}
+  .skrow .fill{height:100%;border-radius:3px}
+  .gap-col.have .fill{background:var(--ok)}
+  .gap-col.gap .fill{background:var(--warn)}
+  .skrow .note{font-size:11.5px;color:var(--ink-3)}
+  .skrow.prio .nm::after{content:" ● priority";color:var(--warn);font-family:var(--mono);font-size:10px;letter-spacing:.04em}
+
+  /* controls */
+  .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 10px}
+  .seg{display:flex;gap:5px;flex-wrap:wrap}
+  .seg button,.ctl{font-family:var(--mono);font-size:12.5px;color:var(--ink-2);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 13px;cursor:pointer;transition:background .15s,color .15s,border-color .15s}
+  .seg button:hover,.ctl:hover{border-color:var(--accent);color:var(--ink)}
+  .seg button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+  .seg button:focus-visible,.ctl:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  select.ctl{padding-right:26px;appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--ink-3) 50%),linear-gradient(135deg,var(--ink-3) 50%,transparent 50%);background-position:calc(100% - 14px) 55%,calc(100% - 9px) 55%;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
+  input.search{font-family:var(--sans);font-size:13px;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:7px 14px;min-width:180px;flex:1;max-width:280px}
+  .starbtn[aria-pressed="true"]{background:var(--gold-soft);border-color:var(--gold);color:var(--gold)}
+  .legend{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);display:flex;flex-wrap:wrap;gap:6px 16px;margin:2px 0 26px}
+  .legend .key{display:inline-flex;align-items:center;gap:6px}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+  .dot.ok{background:var(--ok)}.dot.warn{background:var(--warn)}.dot.g{background:var(--gold)}.dot.s{background:var(--silver)}.dot.b{background:var(--bronze)}
+
+  /* tiers */
+  .tier-head{display:flex;align-items:baseline;gap:12px;margin:30px 0 12px}
+  .tier-head .mark{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;padding:3px 10px;border-radius:6px}
+  .tier-gold .mark{color:var(--gold);background:var(--gold-soft)}
+  .tier-silver .mark{color:var(--silver);background:var(--silver-soft)}
+  .tier-bronze .mark{color:var(--bronze);background:var(--bronze-soft)}
+  .tier-head .desc{font-size:13px;color:var(--ink-3)}
+  .grid{display:flex;flex-direction:column;gap:12px}
+
+  /* card */
+  .role{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .role::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px}
+  .tier-gold .role::before{background:var(--gold)}.tier-silver .role::before{background:var(--silver)}.tier-bronze .role::before{background:var(--bronze)}
+  .role.starred{border-color:var(--gold)}
+  .rmain{display:grid;grid-template-columns:70px 1fr 200px;gap:0}
+  .r-fit{padding:16px 8px;text-align:center;border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+  .r-fit .num{font-family:var(--mono);font-size:26px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .r-fit .lbl{font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--ink-3);text-transform:uppercase}
+  .tier-gold .r-fit .num{color:var(--gold)}.tier-silver .r-fit .num{color:var(--silver)}.tier-bronze .r-fit .num{color:var(--bronze)}
+  .r-body{padding:15px 17px;min-width:0}
+  .r-title{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px;margin-bottom:2px}
+  .r-title .co{font-size:16.5px;font-weight:750;letter-spacing:-.01em}
+  .r-title .ti{font-size:14.5px;color:var(--ink-2)}
+  .r-meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:7px 0 9px;font-family:var(--mono);font-size:11.5px}
+  .chip{padding:2px 9px;border-radius:999px;font-weight:600}
+  {{TRACK_CSS}}
+  .r-meta .m{color:var(--ink-3)}
+  .r-meta .m::before{content:"· ";color:var(--line)}
+  .stack{list-style:none;margin:0 0 10px;padding:0;display:flex;flex-wrap:wrap;gap:5px}
+  .stack li{font-family:var(--mono);font-size:11px;color:var(--ink-2);background:var(--surface-2);border-radius:5px;padding:2px 7px}
+  .why{font-size:13.5px;color:var(--ink-2);margin:0;max-width:64ch}
+  .why .hl{color:var(--ink);font-weight:600}
+  .flag{display:inline-flex;align-items:center;gap:6px;margin-top:9px;font-family:var(--mono);font-size:11.5px;color:var(--warn);background:var(--warn-soft);border-radius:6px;padding:4px 9px}
+  .r-side{padding:15px 16px;border-left:1px solid var(--line);display:flex;flex-direction:column;gap:8px;justify-content:center}
+  .comp .amt{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:16.5px;font-weight:650;letter-spacing:-.01em;display:block}
+  .comp .basis{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.05em;margin-top:2px;display:inline-flex;align-items:center;gap:5px;color:var(--ink-3)}
+  .comp .basis.ok{color:var(--ok)}.comp .basis.warn{color:var(--warn)}
+  .verif{font-family:var(--mono);font-size:10px;color:var(--ink-3);display:inline-flex;align-items:center;gap:5px}
+  .verif .dot{width:7px;height:7px}
+  .apply{font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--accent);text-decoration:none;display:inline-flex;align-items:center;gap:5px;border-bottom:1px solid transparent;padding-bottom:1px;transition:border-color .15s,gap .15s;width:fit-content}
+  .apply:hover{border-color:var(--accent);gap:8px}
+  .apply:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px}
+
+  /* tracker row */
+  .track-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 17px;border-top:1px solid var(--line);background:var(--surface-2)}
+  .track-row .tlabel{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+  select.status{font-family:var(--mono);font-size:12px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:5px 26px 5px 10px;cursor:pointer;appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--ink-3) 50%),linear-gradient(135deg,var(--ink-3) 50%,transparent 50%);background-position:calc(100% - 13px) 55%,calc(100% - 9px) 55%;background-size:4px 4px,4px 4px;background-repeat:no-repeat}
+  .status.s-applied{border-color:var(--st-applied);color:var(--st-applied)}
+  .status.s-screening{border-color:var(--st-screen);color:var(--st-screen)}
+  .status.s-interview{border-color:var(--st-interview);color:var(--st-interview)}
+  .status.s-offer{border-color:var(--st-offer);color:var(--st-offer)}
+  .status.s-passed{border-color:var(--st-passed);color:var(--st-passed)}
+  .status.s-saved{border-color:var(--st-saved);color:var(--st-saved)}
+  .starbtn2{font-size:15px;line-height:1;background:none;border:none;cursor:pointer;color:var(--ink-3);padding:2px 4px}
+  .starbtn2[aria-pressed="true"]{color:var(--gold)}
+  .applied-date{font-family:var(--mono);font-size:10.5px;color:var(--ink-3)}
+  details.detail{border-top:1px solid var(--line)}
+  details.detail>summary{cursor:pointer;list-style:none;padding:9px 17px;font-family:var(--mono);font-size:11.5px;color:var(--accent);display:flex;align-items:center;gap:6px}
+  details.detail>summary::-webkit-details-marker{display:none}
+  details.detail>summary .chev{transition:transform .2s}
+  details.detail[open]>summary .chev{transform:rotate(90deg)}
+  .detail-body{padding:4px 17px 16px;display:grid;gap:14px}
+  .db-block h4{font-family:var(--mono);font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);margin:0 0 7px}
+  .cvbadge{font-family:var(--mono);font-size:12px;font-weight:600;padding:4px 10px;border-radius:7px;background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent-ink);display:inline-block}
+  .points{margin:0;padding-left:18px;font-size:13px;color:var(--ink-2)}
+  .points li{margin-bottom:5px}
+  .jd{font-size:13px;color:var(--ink-2);margin:0}
+  .fitbars{display:grid;gap:6px;max-width:420px}
+  .fb{display:grid;grid-template-columns:78px 1fr 46px;align-items:center;gap:9px;font-family:var(--mono);font-size:11px}
+  .fb .fbl{color:var(--ink-3)}
+  .fb .fbar{height:7px;background:var(--surface-2);border-radius:4px;overflow:hidden}
+  .fb .fbf{height:100%;background:var(--accent);border-radius:4px}
+  .fb .fbv{color:var(--ink-2);text-align:right;font-variant-numeric:tabular-nums}
+  .notes{width:100%;font-family:var(--sans);font-size:13px;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:9px 11px;resize:vertical;min-height:52px}
+  .intel-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .intel-cell{background:var(--surface);padding:9px 11px}
+  .intel-cell .il{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+  .intel-cell .iv{font-size:12.5px;color:var(--ink);margin-top:2px}
+  .intel-note{font-size:12px;color:var(--ink-2);margin:8px 0 0}
+  .intel-loading{font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+  .intel-stab{font-size:12.5px;color:var(--ink-2);margin:8px 0 0}
+  .intel-stab b{color:var(--ink)}
+
+  @media (max-width:780px){.rmain{grid-template-columns:56px 1fr}.r-side{grid-column:1/-1;border-left:none;border-top:1px solid var(--line);flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:space-between}}
+  footer{margin-top:44px;padding-top:22px;border-top:1px solid var(--line)}
+  footer h2{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin:0 0 13px}
+  footer ul{margin:0;padding-left:18px;color:var(--ink-2);font-size:13px}
+  footer li{margin-bottom:7px;max-width:80ch}
+  footer b{color:var(--ink)}
+  .sig{margin-top:20px;font-family:var(--mono);font-size:11.5px;color:var(--ink-3)}
+  .empty{font-family:var(--mono);font-size:13px;color:var(--ink-3);padding:22px 2px}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+  .hidden{display:none!important}
+
+  /* ===== view switch ===== */
+  .viewnav{display:inline-flex;gap:4px;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:4px;margin:8px 0 2px}
+  .viewtab{font-family:var(--sans);font-size:14px;font-weight:650;color:var(--ink-2);background:transparent;border:none;border-radius:9px;padding:9px 18px;cursor:pointer;transition:background .15s,color .15s}
+  .viewtab:hover{color:var(--ink)}
+  .viewtab[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.10)}
+  .viewtab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  /* ===== interview prep ===== */
+  .ip-intro{font-size:14px;color:var(--ink-2);max-width:72ch;margin:16px 0 18px}
+  .ip-tabs{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 22px}
+  .ip-tabs button,.fc-cats button{font-family:var(--mono);font-size:12.5px;color:var(--ink-2);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 13px;cursor:pointer;transition:background .15s,color .15s,border-color .15s}
+  .ip-tabs button:hover,.fc-cats button:hover{border-color:var(--accent);color:var(--ink)}
+  .ip-tabs button[aria-pressed="true"],.fc-cats button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+  .ip-tabs button:focus-visible,.fc-cats button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .ip-count{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin:0 0 14px;max-width:78ch;line-height:1.5}
+
+  /* behavioral */
+  .ip-q{background:var(--surface);border:1px solid var(--line);border-radius:12px;margin:0 0 10px;overflow:hidden}
+  .ip-q>summary{cursor:pointer;list-style:none;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:14px;font-weight:650;font-size:14.5px;line-height:1.35}
+  .ip-q>summary::-webkit-details-marker{display:none}
+  .ip-q>summary .rev{font-family:var(--mono);font-size:11px;color:var(--ink-3);font-weight:400;white-space:nowrap}
+  .ip-q[open]>summary .rev{color:var(--accent)}
+  .ip-qbody{padding:2px 16px 16px}
+  .ip-qtags{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 12px}
+  .ip-qtags span{font-family:var(--mono);font-size:10.5px;color:var(--accent-ink);background:color-mix(in srgb,var(--accent) 13%,transparent);border-radius:5px;padding:2px 7px}
+  .star{display:grid;grid-template-columns:70px 1fr;gap:7px 12px;margin:0 0 12px}
+  .star .sl{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);padding-top:3px}
+  .star .sv{font-size:13.5px;color:var(--ink-2);margin:0;line-height:1.55}
+  .ip-tip{font-size:12.5px;color:var(--ink-2);background:var(--surface-2);border-left:3px solid var(--accent);border-radius:0 7px 7px 0;padding:8px 12px;margin:0 0 12px}
+  .ip-rate{display:flex;flex-wrap:wrap;align-items:center;gap:7px}
+  .ip-rate .rl{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+  .ratebtn{font-family:var(--mono);font-size:11.5px;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);border-radius:999px;padding:5px 12px;cursor:pointer;transition:background .15s,color .15s,border-color .15s}
+  .ratebtn:hover{border-color:var(--accent);color:var(--ink)}
+  .ratebtn[aria-pressed="true"][data-r="nailed"]{background:var(--ok-soft);border-color:var(--ok);color:var(--ok)}
+  .ratebtn[aria-pressed="true"][data-r="shaky"]{background:var(--gold-soft);border-color:var(--gold);color:var(--gold)}
+  .ratebtn[aria-pressed="true"][data-r="review"]{background:var(--warn-soft);border-color:var(--warn);color:var(--warn)}
+  .rbadge{font-family:var(--mono);font-size:10px;border-radius:5px;padding:2px 7px}
+  .rbadge.nailed{background:var(--ok-soft);color:var(--ok)}
+  .rbadge.shaky{background:var(--gold-soft);color:var(--gold)}
+  .rbadge.review{background:var(--warn-soft);color:var(--warn)}
+
+  /* flashcards */
+  .fc-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 16px}
+  .fc-cats{display:flex;flex-wrap:wrap;gap:5px}
+  .fc-count{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin-left:auto;font-variant-numeric:tabular-nums}
+  .fc-card{position:relative;border:1px solid var(--line);border-radius:16px;background:var(--surface);min-height:210px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:38px 28px 30px;cursor:pointer;user-select:none;transition:border-color .15s}
+  .fc-card:hover{border-color:var(--accent)}
+  .fc-card:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .fc-side{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);position:absolute;top:14px;left:16px}
+  .fc-cat{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);position:absolute;top:14px;right:16px}
+  .fc-q{font-size:18px;font-weight:650;color:var(--ink);max-width:54ch;line-height:1.4;margin:0}
+  .fc-a{font-size:14.5px;color:var(--ink-2);max-width:62ch;line-height:1.6;text-align:left;margin:0}
+  .fc-hint{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin:16px 0 0}
+  .fc-controls{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 0;justify-content:center}
+  .fc-nav{font-family:var(--mono);font-size:12.5px;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);border-radius:999px;padding:8px 16px;cursor:pointer;transition:background .15s,color .15s,border-color .15s}
+  .fc-nav:hover{border-color:var(--accent);color:var(--ink)}
+  .fc-nav:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .fc-nav.known{color:var(--ok)}.fc-nav.known:hover{border-color:var(--ok)}
+  .fc-nav.again{color:var(--warn)}.fc-nav.again:hover{border-color:var(--warn)}
+
+  /* per-company */
+  .ip-co-sel{margin:0 0 16px;max-width:440px}
+  .ip-co{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+  .ip-co h3{margin:0 0 2px;font-size:18px;letter-spacing:-.01em}
+  .ip-co .cor{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin:0 0 14px}
+  .ip-co h4,.ip-sd h4{font-family:var(--mono);font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);margin:15px 0 7px}
+  .ip-co ul,.ip-sd ul,.ip-sd ol{margin:0;padding-left:18px;font-size:13.5px;color:var(--ink-2)}
+  .ip-co li,.ip-sd li{margin-bottom:5px;line-height:1.5}
+  .ip-co .focus{font-size:13.5px;color:var(--ink);background:var(--surface-2);border-radius:8px;padding:10px 12px;margin:0}
+  .ip-co .watch{font-size:12.5px;color:var(--warn);background:var(--warn-soft);border-radius:8px;padding:9px 12px;margin:12px 0 0}
+
+  /* system design */
+  .ip-sd{background:var(--surface);border:1px solid var(--line);border-radius:12px;margin:0 0 10px;overflow:hidden}
+  .ip-sd>summary{cursor:pointer;list-style:none;padding:14px 16px;font-weight:650;font-size:14.5px;display:flex;gap:10px;align-items:center}
+  .ip-sd>summary::-webkit-details-marker{display:none}
+  .ip-sd>summary .chev{transition:transform .2s;color:var(--ink-3)}
+  .ip-sd[open]>summary .chev{transform:rotate(90deg)}
+  .ip-sdbody{padding:2px 16px 16px}
+  .ip-prompt{font-size:13.5px;color:var(--ink);margin:0 0 4px}
+  .ip-sd .edge{font-size:13px;color:var(--ink-2);background:var(--surface-2);border-left:3px solid var(--accent);border-radius:0 7px 7px 0;padding:9px 12px;margin:12px 0 0}
+
+  /* ===== contract ===== */
+  .ct-intro{font-size:14px;color:var(--ink-2);max-width:72ch;margin:16px 0 18px}
+  .ct-tabs{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 22px}
+  .ct-tabs button{font-family:var(--mono);font-size:12.5px;color:var(--ink-2);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 13px;cursor:pointer;transition:background .15s,color .15s,border-color .15s}
+  .ct-tabs button:hover{border-color:var(--accent);color:var(--ink)}
+  .ct-tabs button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+  .ct-tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .ct-controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 12px}
+  .ct-count{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin:0 0 16px;font-variant-numeric:tabular-nums}
+  .ct-list{display:flex;flex-direction:column;gap:12px}
+
+  .clead{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .cl-main{padding:15px 17px}
+  .cl-title{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin-bottom:3px}
+  .cl-title .co{font-size:16.5px;font-weight:750;letter-spacing:-.01em}
+  .cl-title .ro{font-size:14.5px;color:var(--ink-2)}
+  .cl-meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0 11px;font-family:var(--mono);font-size:11.5px}
+  .cl-meta .m{color:var(--ink-3)}
+  .cl-meta .m::before{content:"· ";color:var(--line)}
+  .chan{font-family:var(--mono);font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px}
+  .chan-agency{color:var(--bronze);background:var(--bronze-soft)}
+  .chan-direct{color:var(--accent-ink);background:color-mix(in srgb,var(--accent) 15%,transparent)}
+  .chan-platform{color:var(--silver);background:var(--silver-soft)}
+  .stagepill{font-family:var(--mono);font-size:11px;font-weight:600;padding:3px 11px;border-radius:999px;white-space:nowrap;letter-spacing:.02em}
+  .stage-lead{color:var(--st-saved);background:color-mix(in srgb,var(--st-saved) 17%,transparent)}
+  .stage-screening{color:var(--st-screen);background:color-mix(in srgb,var(--st-screen) 17%,transparent)}
+  .stage-submitted{color:var(--st-applied);background:color-mix(in srgb,var(--st-applied) 17%,transparent)}
+  .stage-interviewing{color:var(--st-interview);background:color-mix(in srgb,var(--st-interview) 17%,transparent)}
+  .stage-negotiating{color:var(--gold);background:var(--gold-soft)}
+  .stage-won{color:var(--st-offer);background:color-mix(in srgb,var(--st-offer) 17%,transparent)}
+  .stage-passed{color:var(--st-passed);background:color-mix(in srgb,var(--st-passed) 17%,transparent)}
+
+  .cl-terms{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:9px;overflow:hidden;margin:0 0 12px}
+  .cl-cell{background:var(--surface);padding:9px 11px}
+  .cl-cell .cll{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+  .cl-cell .clv{font-size:13px;color:var(--ink);margin-top:2px;font-variant-numeric:tabular-nums}
+  .cl-cell .clv.rate{font-family:var(--mono);font-size:15px;font-weight:650;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+  .cl-contact{font-family:var(--mono);font-size:12px;color:var(--ink-2);margin:0 0 10px;word-break:break-word}
+  .cl-contact .cll{color:var(--ink-3);letter-spacing:.06em;text-transform:uppercase;font-size:9.5px;margin-right:6px}
+  .cl-notes{font-size:13.5px;color:var(--ink-2);margin:0;max-width:72ch}
+  .cl-notebox{border-top:1px solid var(--line);background:var(--surface-2);padding:11px 17px}
+  .cl-notebox h4{font-family:var(--mono);font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);margin:0 0 7px}
+
+  /* playbook scaffold */
+  .ct-ph{font-family:var(--mono);font-size:12.5px;color:var(--warn);background:var(--warn-soft);border-radius:9px;padding:11px 14px;margin:0 0 20px;max-width:78ch;line-height:1.55}
+  .ct-sec{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:0 0 12px}
+  .ct-sec h3{font-size:15.5px;margin:0 0 5px;letter-spacing:-.01em}
+  .ct-sec .stub{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin:0}
+  .ct-sec .stub em{color:var(--ink-2);font-style:normal}
+
+  /* ===== recruiters ===== */
+  .rc-intro{font-size:14px;color:var(--ink-2);max-width:72ch;margin:16px 0 18px}
+  .rc-controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 12px}
+  .rc-count{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin:0 0 16px;font-variant-numeric:tabular-nums}
+  .rc-count b{color:var(--ink-2);font-weight:700}
+  .rc-list{display:flex;flex-direction:column;gap:12px}
+
+  .rc-dupe{font-family:var(--mono);font-size:12.5px;color:var(--warn);background:var(--warn-soft);border-radius:9px;padding:12px 14px;margin:0 0 18px;max-width:78ch;line-height:1.55}
+  .rc-dupe ul{margin:8px 0 0;padding-left:19px}
+  .rc-dupe li{margin:3px 0;font-variant-numeric:tabular-nums}
+  .rc-ok{font-family:var(--mono);font-size:12.5px;color:var(--ok);background:var(--ok-soft);border-radius:9px;padding:10px 14px;margin:0 0 18px;max-width:78ch}
+
+  .rcard{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .rcard.rc-is-stale{border-color:var(--warn)}
+  .rc-main{padding:15px 17px}
+  .rc-title{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin-bottom:2px}
+  .rc-title .nm{font-size:16.5px;font-weight:750;letter-spacing:-.01em}
+  .rc-title .fm{font-size:14.5px;color:var(--ink-2)}
+  .rc-pill{font-family:var(--mono);font-size:11px;font-weight:600;padding:3px 11px;border-radius:999px;white-space:nowrap;letter-spacing:.02em}
+  .rc-ty-agency{color:var(--st-applied);background:color-mix(in srgb,var(--st-applied) 17%,transparent)}
+  .rc-ty-internal{color:var(--st-offer);background:color-mix(in srgb,var(--st-offer) 17%,transparent)}
+  .rc-ty-platform{color:var(--st-saved);background:color-mix(in srgb,var(--st-saved) 17%,transparent)}
+  .rc-tk-fte{color:var(--st-screen);background:color-mix(in srgb,var(--st-screen) 17%,transparent)}
+  .rc-tk-contract{color:var(--st-interview);background:color-mix(in srgb,var(--st-interview) 17%,transparent)}
+  .rc-tk-both{color:var(--st-saved);background:color-mix(in srgb,var(--st-saved) 17%,transparent)}
+  .rc-o-submitted{color:var(--st-applied);background:color-mix(in srgb,var(--st-applied) 17%,transparent)}
+  .rc-o-screening{color:var(--st-screen);background:color-mix(in srgb,var(--st-screen) 17%,transparent)}
+  .rc-o-interviewing{color:var(--st-interview);background:color-mix(in srgb,var(--st-interview) 17%,transparent)}
+  .rc-o-offer{color:var(--st-offer);background:color-mix(in srgb,var(--st-offer) 17%,transparent)}
+  .rc-o-rejected{color:var(--st-passed);background:color-mix(in srgb,var(--st-passed) 17%,transparent)}
+  .rc-o-unconfirmed{color:var(--warn);background:var(--warn-soft)}
+
+  .rc-meta{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;margin:7px 0 11px;font-family:var(--mono);font-size:11.5px;font-variant-numeric:tabular-nums}
+  .rc-meta .m{color:var(--ink-3)}
+  .rc-meta .m~.m::before{content:"· ";color:var(--line)}
+  .rc-stale{font-family:var(--mono);font-size:11px;font-weight:650;color:var(--warn);background:var(--warn-soft);border-radius:999px;padding:2px 10px;letter-spacing:.02em;font-variant-numeric:tabular-nums}
+
+  .rc-contact{font-family:var(--mono);font-size:12px;color:var(--ink-2);margin:0 0 12px;display:flex;flex-wrap:wrap;gap:3px 16px;word-break:break-word}
+  .rc-contact .rcl{color:var(--ink-3);letter-spacing:.06em;text-transform:uppercase;font-size:9.5px;margin-right:6px}
+
+  .rc-subs{border:1px solid var(--line);border-radius:9px;overflow:hidden;margin:0 0 12px}
+  .rc-subs h4{font-family:var(--mono);font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);font-weight:600;margin:0;padding:8px 12px 7px;background:var(--surface-2);border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px}
+  .rc-subs h4 .n{font-variant-numeric:tabular-nums}
+  .rc-sub{display:flex;flex-wrap:wrap;align-items:center;gap:7px 12px;padding:9px 12px;border-bottom:1px solid var(--line)}
+  .rc-sub:last-child{border-bottom:none}
+  .rc-sub.rc-clash{background:var(--warn-soft)}
+  .rc-sub .sco{font-size:14px;font-weight:650;letter-spacing:-.01em;flex:1 1 auto;min-width:96px}
+  .rc-sub .sdt{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+  .rc-sub .sflag{flex-basis:100%;font-family:var(--mono);font-size:11.5px;color:var(--warn);line-height:1.5}
+  .rc-nosubs{font-family:var(--mono);font-size:12px;color:var(--ink-3);padding:11px 12px;margin:0}
+
+  .rc-notes{font-size:13.5px;color:var(--ink-2);margin:0;max-width:72ch}
+  .rc-notebox{border-top:1px solid var(--line);background:var(--surface-2);padding:11px 17px}
+  .rc-notebox h4{font-family:var(--mono);font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);margin:0 0 7px}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">{{EYEBROW}}</p>
+    <h1>{{HEADLINE}}</h1>
+    <p class="lede">{{LEDE}}</p>
+    <div class="spec">
+      {{SPEC_CHIPS}}
+    </div>
+
+    <div class="viewnav" role="tablist" aria-label="Switch view">
+      <button class="viewtab" data-view="shortlist" role="tab" aria-selected="true">🎯 Role Shortlist</button>
+      <button class="viewtab" data-view="prep" role="tab" aria-selected="false">🎤 Interview Prep</button>
+      <button class="viewtab" data-view="contract" role="tab" aria-selected="false">📄 Contract</button>
+      <button class="viewtab" data-view="recruiters" role="tab" aria-selected="false">🤝 Recruiters</button>
+    </div>
+  </header>
+
+  <div id="view-shortlist" role="tabpanel">
+    <div class="pipeline" id="pipeline"></div>
+
+    <details class="panel" open>
+      <summary>Your skill map against the market <span class="hint">what you have · what to learn next <span class="chev">▸</span></span></summary>
+      <div class="body">
+        <p style="font-size:13px;color:var(--ink-2);margin:2px 0 16px;max-width:70ch">{{SKILLS_NOTE}}</p>
+        <div class="gap-grid">
+          <div class="gap-col have"><h3>In demand — you have it</h3><div id="haveList"></div></div>
+          <div class="gap-col gap"><h3>In demand — learn next</h3><div id="gapList"></div></div>
+        </div>
+      </div>
+    </details>
+
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Filter by track">
+        {{TRACK_FILTERS}}
+      </div>
+      <select class="ctl" id="statusFilter" aria-label="Filter by status">
+        <option value="all">Any status</option>
+        <option value="none">Not started</option>
+        <option value="Saved">Saved</option><option value="Applied">Applied</option><option value="Screening">Screening</option><option value="Interview">Interview</option><option value="Offer">Offer</option><option value="Passed">Passed</option>
+      </select>
+      <select class="ctl" id="sortBy" aria-label="Sort by">
+        <option value="fit">Sort: Fit</option><option value="comp">Sort: Comp</option><option value="company">Sort: Company</option>
+      </select>
+      <button class="ctl starbtn" id="starOnly" aria-pressed="false">★ Starred only</button>
+      <input class="search" id="search" type="search" placeholder="Search company, title, stack…" aria-label="Search roles">
+    </div>
+    <div class="legend">
+      <span class="key"><span class="dot g"></span> Gold</span><span class="key"><span class="dot s"></span> Silver</span><span class="key"><span class="dot b"></span> Bronze</span>
+      <span class="key"><span class="dot ok"></span> {{COMP_OK_LABEL}}</span><span class="key"><span class="dot warn"></span> {{COMP_WARN_LABEL}}</span>
+      <span class="key">Tier = pursuit priority · Fit = 0–100 match</span>
+    </div>
+
+  <main id="board"></main>
+
+  <footer>
+    <h2>How this was built &amp; its limits</h2>
+    <ul>{{FOOTER_NOTES}}</ul>
+    <p class="sig" id="sig">{{SIGNATURE}}</p>
+  </footer>
+  </div><!-- /#view-shortlist -->
+
+  <div id="view-prep" class="hidden" role="tabpanel" aria-label="Interview prep">
+    <p class="ip-intro">{{PREP_INTRO}}</p>
+    <div class="ip-tabs" role="tablist" aria-label="Interview prep sections">
+      <button data-ip="behavioral" aria-pressed="true" role="tab">Behavioral · STAR</button>
+      <button data-ip="flashcards" aria-pressed="false" role="tab">Flashcards</button>
+      <button data-ip="company" aria-pressed="false" role="tab">Per-company</button>
+      <button data-ip="sysdesign" aria-pressed="false" role="tab">System design</button>
+    </div>
+    <section id="ip-behavioral" class="ip-panel" role="tabpanel"></section>
+    <section id="ip-flashcards" class="ip-panel hidden" role="tabpanel"></section>
+    <section id="ip-company" class="ip-panel hidden" role="tabpanel"></section>
+    <section id="ip-sysdesign" class="ip-panel hidden" role="tabpanel"></section>
+  </div>
+
+  <div id="view-contract" class="hidden" role="tabpanel" aria-label="Contract">
+    <p class="ct-intro">Contract and consulting track, kept separate from the salaried shortlist because the math, the paperwork, and the pipeline are different. <b>Leads</b> is the live board — inbound recruiters, agencies, and platforms, with rate and structure as quoted. <b>Playbook</b> is the reference layer: what a rate has to clear, which structure to take, and what to check before signing. Notes save privately in this browser.</p>
+    <div class="ct-tabs" role="tablist" aria-label="Contract sections">
+      <button data-ct="leads" aria-pressed="true" role="tab">Leads</button>
+      <button data-ct="playbook" aria-pressed="false" role="tab">Playbook</button>
+    </div>
+    <section id="ct-leads" class="ct-panel" role="tabpanel"></section>
+    <section id="ct-playbook" class="ct-panel hidden" role="tabpanel"></section>
+  </div>
+
+  <div id="view-recruiters" class="hidden" role="tabpanel" aria-label="Recruiters">
+    <p class="rc-intro">Every recruiter working your search, on both tracks. The point of this page is the <b>submissions record</b>: if two agencies put you in front of the same client, you can be disqualified outright or trigger a placement-fee dispute that kills the offer. Log every submission the moment it is claimed, and confirm the unconfirmed ones. <b>Internal</b> means the recruiter works for the hiring company; <b>Agency</b> means a third party earning a commission on the placement. Recruiters go quiet if you do — anyone you have not spoken to in 21+ days is flagged stale. Notes save privately in this browser.</p>
+    <section id="rc-board" role="tabpanel"></section>
+  </div>
+</div>
+
+<script>
+const SEED = /*__SEED__*/ null;
+const TRACKS = SEED.tracks || [];
+const TRACK_LABEL = Object.fromEntries(TRACKS.map(t => [t.id, t.label]));
+function trackLabel(id){ return TRACK_LABEL[id] || id; }
+const SKILLS_HAVE = SEED.skillsHave;
+const SKILLS_GAP = SEED.skillsGap;
+
+const ROLES = SEED.roles;
+
+const INTEL = SEED.intel;
+
+const TIERS=[
+  {key:"gold",mark:"◆ Gold",desc:"Pursue first — strong fit, posted comp clears, verified."},
+  {key:"silver",mark:"◆ Silver",desc:"Strong, with one softer dimension."},
+  {key:"bronze",mark:"◆ Bronze",desc:"Worth a look — carries a real caveat (comp, estimate, or stretch)."}
+];
+const STATUSES=["Saved","Applied","Screening","Interview","Offer","Passed"];
+
+// ---- state (localStorage, defensive) ----
+const KEY="jobtracker:v1";
+function loadState(){try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return {}}}
+function saveState(s){try{localStorage.setItem(KEY,JSON.stringify(s))}catch(e){}}
+let STATE=loadState();
+ROLES.forEach(function(r){if(r.seed&&!STATE[r.id]){STATE[r.id]={status:r.seed,starred:false,notes:"",applied:r.seedDate||""};}});
+saveState(STATE);
+function roleState(id){return STATE[id]||(STATE[id]={status:"",starred:false,notes:"",applied:""})}
+
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+
+// ---- skill panel render ----
+function renderSkills(){
+  const maxC=20;
+  document.getElementById("haveList").innerHTML=SKILLS_HAVE.map(s=>`
+    <div class="skrow"><div class="top"><span class="nm">${esc(s.nm)}</span><span class="ct">${s.ct}/${SEED.postingsSurveyed||0} roles</span></div>
+    <div class="bar"><div class="fill" style="width:${Math.round(s.ct/maxC*100)}%"></div></div>
+    <div class="note">${esc(s.note)}</div></div>`).join("");
+  document.getElementById("gapList").innerHTML=SKILLS_GAP.map(s=>`
+    <div class="skrow${s.prio?" prio":""}"><div class="top"><span class="nm">${esc(s.nm)}</span><span class="ct">${s.ct}/20 roles</span></div>
+    <div class="bar"><div class="fill" style="width:${Math.round(s.ct/maxC*100)}%"></div></div>
+    <div class="note">${esc(s.note)}</div></div>`).join("");
+}
+
+// ---- card render ----
+function fitBars(f){
+  const rows=(SEED.fitWeights||[]).map(w=>[w.label,Number(f[w.key])||0,w.max]);
+  return `<div class="fitbars">`+rows.map(([l,v,m])=>`<div class="fb"><span class="fbl">${l}</span><span class="fbar"><span class="fbf" style="width:${Math.round(v/m*100)}%"></span></span><span class="fbv">${v}/${m}</span></div>`).join("")+`</div>`;
+}
+function intelBlock(r){
+  const i=INTEL[r.company];
+  if(!i) return `<div class="intel-loading">Company intel unavailable.</div>`;
+  const cell=(l,v)=>v?`<div class="intel-cell"><div class="il">${l}</div><div class="iv">${esc(v)}</div></div>`:"";
+  return `<div class="intel-grid">${cell("Status",i.status)}${cell("Headcount",i.headcount)}${cell("Glassdoor",i.glassdoor)}${cell("Recent signal",i.signal)}</div>`+
+    (i.stability?`<p class="intel-stab"><b>Read:</b> ${esc(i.stability)}</p>`:"");
+}
+function card(r){
+  const st=roleState(r.id);
+  const scls=st.status?"s-"+st.status.toLowerCase():"";
+  const opts=`<option value="">Not started</option>`+STATUSES.map(s=>`<option value="${s}"${st.status===s?" selected":""}>${s}</option>`).join("");
+  return `<article class="role${st.starred?" starred":""}" data-id="${r.id}" data-track="${r.track}">
+    <div class="rmain">
+      <div class="r-fit"><span class="num">${r.fit.total}</span><span class="lbl">Fit</span></div>
+      <div class="r-body">
+        <div class="r-title"><span class="co">${esc(r.company)}</span><span class="ti">${esc(r.title)}</span></div>
+        <div class="r-meta"><span class="chip chip-${r.track}">${trackLabel(r.track)}</span><span class="m">${esc(r.level)}</span><span class="m">${esc(r.remote)}</span></div>
+        <ul class="stack">${r.stack.map(s=>`<li>${esc(s)}</li>`).join("")}</ul>
+        <p class="why">${r.why}</p>
+        ${r.flag?`<span class="flag"><span class="dot warn"></span>${esc(r.flag)}</span>`:""}
+      </div>
+      <div class="r-side">
+        <div class="comp"><span class="amt">${esc(r.comp)}</span><span class="basis ${r.basis}"><span class="dot ${r.basis}"></span>${esc(r.basisTxt)}</span></div>
+        <div class="verif"><span class="dot ${r.verifState}"></span>${esc(r.verif)}</div>
+        <a class="apply" href="${r.url}" target="_blank" rel="noopener">View posting →</a>
+      </div>
+    </div>
+    <div class="track-row">
+      <span class="tlabel">Status</span>
+      <select class="status ${scls}" data-act="status" aria-label="Application status for ${esc(r.company)}">${opts}</select>
+      <button class="starbtn2" data-act="star" aria-pressed="${st.starred}" aria-label="Star ${esc(r.company)}" title="Star / priority">${st.starred?"★":"☆"}</button>
+      ${st.applied?`<span class="applied-date">applied ${esc(st.applied)}</span>`:""}
+    </div>
+    <details class="detail">
+      <summary><span class="chev">▸</span> Details — talking points · which résumé · fit breakdown · notes</summary>
+      <div class="detail-body">
+        <div class="db-block"><h4>Send</h4><span class="cvbadge">${r.cv} résumé</span></div>
+        <div class="db-block"><h4>Role centers on</h4><p class="jd">${esc(r.jd)}</p></div>
+        <div class="db-block"><h4>Talking points</h4><ul class="points">${r.points.map(p=>`<li>${esc(p)}</li>`).join("")}</ul></div>
+        <div class="db-block"><h4>Why this fit score</h4>${fitBars(r.fit)}</div>
+        <div class="db-block"><h4>Company intel</h4>${intelBlock(r)}</div>
+        <div class="db-block"><h4>Your notes</h4><textarea class="notes" data-act="notes" placeholder="Contacts, referral, why interested, follow-ups…" aria-label="Notes for ${esc(r.company)}">${esc(st.notes)}</textarea></div>
+      </div>
+    </details>
+  </article>`;
+}
+
+// ---- board render with filters/sort ----
+function currentFilters(){
+  return {
+    track:document.querySelector('.seg button[aria-pressed="true"]').dataset.filter,
+    status:document.getElementById("statusFilter").value,
+    sort:document.getElementById("sortBy").value,
+    starOnly:document.getElementById("starOnly").getAttribute("aria-pressed")==="true",
+    q:document.getElementById("search").value.trim().toLowerCase()
+  };
+}
+function matches(r,f){
+  if(f.track!=="all"&&r.track!==f.track) return false;
+  const st=roleState(r.id);
+  if(f.status==="none"&&st.status) return false;
+  if(f.status!=="all"&&f.status!=="none"&&st.status!==f.status) return false;
+  if(f.starOnly&&!st.starred) return false;
+  if(f.q){const hay=(r.company+" "+r.title+" "+r.stack.join(" ")).toLowerCase();if(!hay.includes(f.q)) return false;}
+  return true;
+}
+function sortRoles(list,key){
+  const c=[...list];
+  if(key==="comp") c.sort((a,b)=>b.compSort-a.compSort);
+  else if(key==="company") c.sort((a,b)=>a.company.localeCompare(b.company)||b.fit.total-a.fit.total);
+  else c.sort((a,b)=>b.fit.total-a.fit.total);
+  return c;
+}
+function render(){
+  const f=currentFilters();
+  const board=document.getElementById("board");
+  let html="",any=false;
+  TIERS.forEach(t=>{
+    const inTier=sortRoles(ROLES.filter(r=>r.tier===t.key&&matches(r,f)),f.sort);
+    if(!inTier.length) return;
+    any=true;
+    html+=`<section class="tier tier-${t.key}"><div class="tier-head"><span class="mark">${t.mark}</span><span class="desc">${t.desc}</span></div><div class="grid">${inTier.map(card).join("")}</div></section>`;
+  });
+  board.innerHTML=any?html:`<p class="empty">No roles match these filters. Try clearing the search or status filter.</p>`;
+  renderPipeline();
+}
+function renderPipeline(){
+  const counts={};STATUSES.forEach(s=>counts[s]=0);let starred=0;
+  ROLES.forEach(r=>{const st=roleState(r.id);if(st.status&&counts[st.status]!=null)counts[st.status]++;if(st.starred)starred++;});
+  const colors={Saved:"--st-saved",Applied:"--st-applied",Screening:"--st-screen",Interview:"--st-interview",Offer:"--st-offer",Passed:"--st-passed"};
+  const active=STATUSES.filter(s=>counts[s]>0);
+  const pills=active.map(s=>`<span class="pill"><span class="swatch" style="background:var(${colors[s]})"></span>${s} <span class="c">${counts[s]}</span></span>`);
+  let out=`<span class="pill"><span class="swatch" style="background:var(--ink-3)"></span>Tracked <span class="c">${Object.values(counts).reduce((a,b)=>a+b,0)}</span>/${ROLES.length}</span>`;
+  if(starred)out+=`<span class="pill"><span class="swatch" style="background:var(--gold)"></span>★ Starred <span class="c">${starred}</span></span>`;
+  document.getElementById("pipeline").innerHTML=out+pills.join("");
+}
+
+// ---- events ----
+function todayStr(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+document.addEventListener("change",e=>{
+  const art=e.target.closest(".role");
+  if(art&&e.target.dataset.act==="status"){
+    const st=roleState(art.dataset.id);st.status=e.target.value;
+    if(e.target.value==="Applied"&&!st.applied)st.applied=todayStr();
+    if(!e.target.value)st.applied="";
+    saveState(STATE);render();
+  }
+  if(["statusFilter","sortBy"].includes(e.target.id))render();
+});
+document.addEventListener("input",e=>{
+  const art=e.target.closest(".role");
+  if(art&&e.target.dataset.act==="notes"){roleState(art.dataset.id).notes=e.target.value;saveState(STATE);}
+  if(e.target.id==="search")render();
+});
+document.addEventListener("click",e=>{
+  const star=e.target.closest('[data-act="star"]');
+  if(star){const art=star.closest(".role");const st=roleState(art.dataset.id);st.starred=!st.starred;saveState(STATE);render();return;}
+  const seg=e.target.closest('.seg button');
+  if(seg){document.querySelectorAll('.seg button').forEach(b=>b.setAttribute("aria-pressed",b===seg?"true":"false"));render();return;}
+  if(e.target.id==="starOnly"){const on=e.target.getAttribute("aria-pressed")==="true";e.target.setAttribute("aria-pressed",(!on).toString());render();return;}
+});
+
+renderSkills();
+render();
+
+// ================= interview prep =================
+const BEHAVIORAL = SEED.behavioral; //__IP_BEHAVIORAL__
+const FLASHCARDS = SEED.flashcards; //__IP_FLASHCARDS__
+const COMPANY_PREP = SEED.companyPrep; //__IP_COMPANY__
+const SYSDESIGN = SEED.sysdesign; //__IP_SYSDESIGN__
+
+const IPKEY="ipprep:v1";
+function ipLoad(){try{return JSON.parse(localStorage.getItem(IPKEY))||{}}catch(e){return {}}}
+function ipSaveState(){try{localStorage.setItem(IPKEY,JSON.stringify(IP))}catch(e){}}
+let IP=ipLoad();IP.behav=IP.behav||{};IP.cards=IP.cards||{};
+
+function renderBehavioral(){
+  const el=document.getElementById("ip-behavioral");
+  if(!BEHAVIORAL.length){el.innerHTML='<p class="ip-count">Behavioral questions are being drafted from your work history.</p>';return;}
+  const done=BEHAVIORAL.filter(b=>IP.behav[b.id]).length;
+  const rows=BEHAVIORAL.map(b=>{
+    const r=IP.behav[b.id]||"";
+    const badge=r?`<span class="rbadge ${r}">${r==="nailed"?"nailed it":r}</span>`:"reveal ▸";
+    const rate=[["nailed","Nailed it"],["shaky","Shaky"],["review","Review"]].map(([k,lab])=>`<button class="ratebtn" data-act="rate" data-id="${b.id}" data-r="${k}" aria-pressed="${r===k}">${lab}</button>`).join("");
+    return `<details class="ip-q"><summary><span>${esc(b.q)}</span><span class="rev">${badge}</span></summary>
+      <div class="ip-qbody">
+        <div class="ip-qtags">${b.tags.map(t=>`<span>${esc(t)}</span>`).join("")}</div>
+        <div class="star"><span class="sl">Situation</span><p class="sv">${esc(b.s)}</p><span class="sl">Task</span><p class="sv">${esc(b.t)}</p><span class="sl">Action</span><p class="sv">${esc(b.a)}</p><span class="sl">Result</span><p class="sv">${esc(b.r)}</p></div>
+        <p class="ip-tip">💡 ${esc(b.tip)}</p>
+        <div class="ip-rate"><span class="rl">Self-rate:</span>${rate}</div>
+      </div></details>`;
+  }).join("");
+  el.innerHTML=`<p class="ip-count">${done}/${BEHAVIORAL.length} practiced · answers are drafts from your real work — edit them into your own voice before an interview.</p>${rows}`;
+}
+
+let FC={cat:"All",idx:0,flip:false};
+function fcDeck(){return FLASHCARDS.map((c,i)=>({cat:c.cat,q:c.q,a:c.a,gid:c.cat+"|"+i})).filter(c=>FC.cat==="All"||c.cat===FC.cat);}
+function renderFlashcards(){
+  const el=document.getElementById("ip-flashcards");
+  if(!FLASHCARDS.length){el.innerHTML='<p class="ip-count">Flashcards are being drafted.</p>';return;}
+  const cats=["All"].concat(FLASHCARDS.map(c=>c.cat).filter((v,i,a)=>a.indexOf(v)===i));
+  const deck=fcDeck();
+  if(FC.idx>=deck.length)FC.idx=0;
+  const c=deck[FC.idx];
+  const known=deck.filter(x=>IP.cards[x.gid]==="known").length;
+  const catsHtml=cats.map(k=>`<button data-act="fccat" data-cat="${esc(k)}" aria-pressed="${FC.cat===k}">${esc(k)}</button>`).join("");
+  const card=c?`<div class="fc-card" data-act="fcflip" tabindex="0" role="button" aria-label="Flip card">
+      <span class="fc-side">${FC.flip?"Answer":"Question"}</span><span class="fc-cat">${esc(c.cat)}${IP.cards[c.gid]==="known"?" ✓":""}</span>
+      ${FC.flip?`<p class="fc-a">${esc(c.a)}</p>`:`<p class="fc-q">${esc(c.q)}</p><p class="fc-hint">click to flip</p>`}
+    </div>
+    <div class="fc-controls"><button class="fc-nav" data-act="fcprev">‹ Prev</button><button class="fc-nav again" data-act="fcagain">Review again</button><button class="fc-nav known" data-act="fcknown">Got it ✓</button><button class="fc-nav" data-act="fcnext">Next ›</button></div>`:'<p class="ip-count">No cards in this category.</p>';
+  el.innerHTML=`<div class="fc-bar"><div class="fc-cats" role="group" aria-label="Category">${catsHtml}</div><span class="fc-count">card ${deck.length?FC.idx+1:0} / ${deck.length} · ${known} known</span></div>${card}`;
+}
+function fcAdvance(){const d=fcDeck();FC.idx=d.length?(FC.idx+1)%d.length:0;FC.flip=false;}
+
+function renderCompany(){
+  const el=document.getElementById("ip-company");
+  if(!COMPANY_PREP.length){el.innerHTML='<p class="ip-count">Per-company prep is being drafted.</p>';return;}
+  const sel=(IP.coSel&&COMPANY_PREP.some(c=>c.company===IP.coSel))?IP.coSel:COMPANY_PREP[0].company;
+  const opts=COMPANY_PREP.map(c=>`<option value="${esc(c.company)}"${c.company===sel?" selected":""}>${esc(c.company)} — ${esc(c.role)}</option>`).join("");
+  const c=COMPANY_PREP.find(x=>x.company===sel);
+  el.innerHTML=`<div class="ip-co-sel"><select class="ctl" data-act="cosel" aria-label="Choose company" style="width:100%">${opts}</select></div>
+    <div class="ip-co"><h3>${esc(c.company)}</h3><p class="cor">${esc(c.role)}</p>
+      <p class="focus">${esc(c.focus)}</p>
+      <h4>Likely themes</h4><ul>${c.themes.map(t=>`<li>${esc(t)}</li>`).join("")}</ul>
+      <h4>What they value</h4><ul><li>${esc(c.theyValue)}</li></ul>
+      <h4>Your angles</h4><ul>${c.yourAngles.map(t=>`<li>${esc(t)}</li>`).join("")}</ul>
+      <h4>Questions to ask them</h4><ul>${c.askThem.map(t=>`<li>${esc(t)}</li>`).join("")}</ul>
+      <p class="watch"><b>Watch out —</b> ${esc(c.watchOut)}</p>
+    </div>`;
+}
+
+function renderSysdesign(){
+  const el=document.getElementById("ip-sysdesign");
+  if(!SYSDESIGN.length){el.innerHTML='<p class="ip-count">System-design prompts are being drafted.</p>';return;}
+  el.innerHTML=SYSDESIGN.map(s=>`<details class="ip-sd"><summary><span class="chev">▸</span> ${esc(s.title)}</summary>
+    <div class="ip-sdbody">
+      <p class="ip-prompt"><b>Prompt.</b> ${esc(s.prompt)}</p>
+      <h4>How to structure it</h4><ol>${s.approach.map(a=>`<li>${esc(a)}</li>`).join("")}</ol>
+      <p class="edge"><b>Your edge —</b> ${esc(s.yourEdge)}</p>
+      <h4>Trade-offs / follow-ups to raise</h4><ul>${s.tradeoffs.map(t=>`<li>${esc(t)}</li>`).join("")}</ul>
+    </div></details>`).join("");
+}
+
+function renderPrep(){renderBehavioral();renderFlashcards();renderCompany();renderSysdesign();}
+
+document.addEventListener("click",e=>{
+  const vt=e.target.closest(".viewtab");
+  if(vt){document.querySelectorAll(".viewtab").forEach(b=>b.setAttribute("aria-selected",b===vt?"true":"false"));const v=vt.dataset.view;document.getElementById("view-shortlist").classList.toggle("hidden",v!=="shortlist");document.getElementById("view-prep").classList.toggle("hidden",v!=="prep");document.getElementById("view-contract").classList.toggle("hidden",v!=="contract");window.scrollTo({top:0,behavior:"smooth"});return;}
+  const it=e.target.closest(".ip-tabs button");
+  if(it){document.querySelectorAll(".ip-tabs button").forEach(b=>b.setAttribute("aria-pressed",b===it?"true":"false"));const p=it.dataset.ip;["behavioral","flashcards","company","sysdesign"].forEach(k=>document.getElementById("ip-"+k).classList.toggle("hidden",k!==p));return;}
+  const rb=e.target.closest('[data-act="rate"]');
+  if(rb){const id=rb.dataset.id,r=rb.dataset.r;if(IP.behav[id]===r)delete IP.behav[id];else IP.behav[id]=r;ipSaveState();renderBehavioral();return;}
+  if(e.target.closest('[data-act="fcflip"]')){FC.flip=!FC.flip;renderFlashcards();return;}
+  const fcc=e.target.closest('[data-act="fccat"]');
+  if(fcc){FC.cat=fcc.dataset.cat;FC.idx=0;FC.flip=false;renderFlashcards();return;}
+  if(e.target.closest('[data-act="fcprev"]')){const d=fcDeck();FC.idx=d.length?(FC.idx-1+d.length)%d.length:0;FC.flip=false;renderFlashcards();return;}
+  if(e.target.closest('[data-act="fcnext"]')){fcAdvance();renderFlashcards();return;}
+  if(e.target.closest('[data-act="fcknown"]')){const d=fcDeck(),c=d[FC.idx];if(c){IP.cards[c.gid]="known";ipSaveState();}fcAdvance();renderFlashcards();return;}
+  if(e.target.closest('[data-act="fcagain"]')){const d=fcDeck(),c=d[FC.idx];if(c){IP.cards[c.gid]="again";ipSaveState();}fcAdvance();renderFlashcards();return;}
+});
+document.addEventListener("change",e=>{const cs=e.target.closest('[data-act="cosel"]');if(cs){IP.coSel=cs.value;ipSaveState();renderCompany();}});
+document.addEventListener("keydown",e=>{if(e.target.classList&&e.target.classList.contains("fc-card")&&(e.key==="Enter"||e.key===" ")){e.preventDefault();FC.flip=!FC.flip;renderFlashcards();}});
+
+renderPrep();
+
+/* ===================== CONTRACT VIEW ===================== */
+
+const CONTRACT_LEADS = SEED.contractLeads;
+
+const CT_CHANNELS=["Agency","Direct","Platform"];
+const CT_STAGES=["Lead","Screening","Submitted","Interviewing","Negotiating","Won","Passed"];
+
+// ---- state (localStorage, own key — separate from jobtracker:v1 / ipprep:v1) ----
+const CTKEY="contract:v1";
+function ctLoad(){try{return JSON.parse(localStorage.getItem(CTKEY))||{}}catch(e){return {}}}
+function ctSave(){try{localStorage.setItem(CTKEY,JSON.stringify(CT))}catch(e){}}
+let CT=ctLoad();CT.notes=CT.notes||{};
+let CTUI={chan:"all",stage:"all",q:""};
+
+function ctNotes(id){return CT.notes[id]||""}
+function ctSlug(s){return String(s).toLowerCase().replace(/[^a-z]/g,"")}
+
+function ctMatches(l){
+  if(CTUI.chan!=="all"&&l.channel!==CTUI.chan) return false;
+  if(CTUI.stage!=="all"&&l.stage!==CTUI.stage) return false;
+  if(CTUI.q){
+    const hay=(l.co+" "+l.role+" "+l.channel+" "+l.structure+" "+l.stage+" "+l.contact+" "+l.notes+" "+ctNotes(l.id)).toLowerCase();
+    if(!hay.includes(CTUI.q)) return false;
+  }
+  return true;
+}
+
+function ctLeadCard(l){
+  const cell=(lab,val,cls)=>`<div class="cl-cell"><div class="cll">${lab}</div><div class="clv${cls?" "+cls:""}">${esc(val)}</div></div>`;
+  return `<article class="clead" data-ctid="${esc(l.id)}">
+    <div class="cl-main">
+      <div class="cl-title"><span class="co">${esc(l.co)}</span><span class="ro">${esc(l.role)}</span><span class="stagepill stage-${ctSlug(l.stage)}">${esc(l.stage)}</span></div>
+      <div class="cl-meta"><span class="chan chan-${ctSlug(l.channel)}">${esc(l.channel)}</span><span class="m">first contact ${esc(l.date)}</span></div>
+      <div class="cl-terms">${cell("Rate",l.rate,"rate")}${cell("Structure",l.structure)}${cell("Length",l.len)}${cell("Stage",l.stage)}</div>
+      <p class="cl-contact"><span class="cll">Contact</span>${esc(l.contact)}</p>
+      <p class="cl-notes">${esc(l.notes)}</p>
+    </div>
+    <div class="cl-notebox">
+      <h4>Your notes</h4>
+      <textarea class="notes" data-act="ctnotes" placeholder="Rate floor, callback attempts, submission details, follow-ups…" aria-label="Notes for ${esc(l.co)}">${esc(ctNotes(l.id))}</textarea>
+    </div>
+  </article>`;
+}
+
+// controls render once; only the board re-renders on filter/search so the search box keeps focus
+function renderContractLeads(){
+  const chanOpts=`<option value="all">Any channel</option>`+CT_CHANNELS.map(c=>`<option value="${c}">${c}</option>`).join("");
+  const stageOpts=`<option value="all">Any stage</option>`+CT_STAGES.map(s=>`<option value="${s}">${s}</option>`).join("");
+  document.getElementById("ct-leads").innerHTML=`<div class="ct-controls">
+      <select class="ctl" id="ctChanFilter" aria-label="Filter by channel">${chanOpts}</select>
+      <select class="ctl" id="ctStageFilter" aria-label="Filter by stage">${stageOpts}</select>
+      <input class="search" id="ctSearch" type="search" placeholder="Search company, role, contact, notes…" aria-label="Search contract leads">
+    </div>
+    <p class="ct-count" id="ctCount"></p><div id="ctBoard"></div>`;
+  renderCtBoard();
+}
+function renderCtBoard(){
+  const shown=CONTRACT_LEADS.filter(ctMatches);
+  document.getElementById("ctCount").textContent=`${shown.length} of ${CONTRACT_LEADS.length} lead${CONTRACT_LEADS.length===1?"":"s"} shown`;
+  document.getElementById("ctBoard").innerHTML=shown.length
+    ?`<div class="ct-list">${shown.map(ctLeadCard).join("")}</div>`
+    :`<p class="empty">No contract leads match these filters.</p>`;
+}
+
+const CT_PLAYBOOK_SECTIONS = SEED.contractPlaybook;
+
+function renderContractPlaybook(){
+  document.getElementById("ct-playbook").innerHTML=
+    `<p class="ct-ph"><b>⚠ Placeholder — not yet researched.</b> The rate, tax, and entity research for this section is still running and will be filled in on a later pass. <b>Nothing below contains real numbers or tax advice yet</b> — every section is a heading with a scope note only. Do not act on this page for contract decisions until it is filled in.</p>`+
+    CT_PLAYBOOK_SECTIONS.map(s=>`<div class="ct-sec"><h3>${esc(s.h)}</h3><p class="stub"><em>To be filled in —</em> ${esc(s.stub)}</p></div>`).join("");
+}
+
+function renderContract(){renderContractLeads();renderContractPlaybook();}
+
+document.addEventListener("click",e=>{
+  const ct=e.target.closest(".ct-tabs button");
+  if(ct){
+    document.querySelectorAll(".ct-tabs button").forEach(b=>b.setAttribute("aria-pressed",b===ct?"true":"false"));
+    const p=ct.dataset.ct;
+    ["leads","playbook"].forEach(k=>document.getElementById("ct-"+k).classList.toggle("hidden",k!==p));
+    return;
+  }
+});
+document.addEventListener("change",e=>{
+  if(e.target.id==="ctChanFilter"){CTUI.chan=e.target.value;renderCtBoard();return;}
+  if(e.target.id==="ctStageFilter"){CTUI.stage=e.target.value;renderCtBoard();return;}
+});
+document.addEventListener("input",e=>{
+  const art=e.target.closest(".clead");
+  if(art&&e.target.dataset.act==="ctnotes"){CT.notes[art.dataset.ctid]=e.target.value;ctSave();return;}
+  if(e.target.id==="ctSearch"){CTUI.q=e.target.value.trim().toLowerCase();renderCtBoard();return;}
+});
+
+renderContract();
+
+/* ===================== RECRUITERS VIEW ===================== */
+
+const RECRUITERS = SEED.recruiters;
+
+const RC_TYPES=["Agency","Internal","Platform"];
+const RC_TRACKS=["FTE","Contract","Both"];
+const RC_STALE_DAYS=21;
+
+// ---- state (localStorage, own key — separate from jobtracker:v1 / ipprep:v1 / contract:v1) ----
+const RCKEY="recruiters:v1";
+function rcLoad(){try{return JSON.parse(localStorage.getItem(RCKEY))||{}}catch(e){return {}}}
+function rcSave(){try{localStorage.setItem(RCKEY,JSON.stringify(RC))}catch(e){}}
+let RC=rcLoad();RC.notes=RC.notes||{};
+let RCUI={type:"all",track:"all",q:""};
+
+function rcNotes(id){return RC.notes[id]||""}
+function rcSlug(s){return String(s).toLowerCase().replace(/[^a-z]/g,"")}
+
+// days since an ISO date, computed against the clock at render time (relationships decay)
+function rcDaysSince(iso){
+  const t=Date.parse(String(iso)+"T00:00:00");
+  return isNaN(t)?null:Math.floor((Date.now()-t)/86400000);
+}
+function rcIsStale(r){const d=rcDaysSince(r.lastContact);return d!==null&&d>RC_STALE_DAYS;}
+
+// the anti-double-submission index: client company -> every recruiter claiming a submission to it
+function rcClashMap(){
+  const m={};
+  RECRUITERS.forEach(r=>r.submissions.forEach(s=>{
+    const k=rcSlug(s.co);
+    if(!m[k])m[k]={co:s.co,who:[]};
+    if(m[k].who.indexOf(r.name)===-1)m[k].who.push(r.name);
+  }));
+  return m;
+}
+function rcClashes(){const m=rcClashMap();return Object.keys(m).map(k=>m[k]).filter(x=>x.who.length>1);}
+
+function rcMatches(r){
+  if(RCUI.type!=="all"&&r.type!==RCUI.type) return false;
+  if(RCUI.track!=="all"&&r.track!==RCUI.track) return false;
+  if(RCUI.q){
+    const subTxt=r.submissions.map(s=>s.co+" "+s.outcome).join(" ");
+    const hay=(r.name+" "+r.firm+" "+r.type+" "+r.track+" "+r.email+" "+r.notes+" "+subTxt+" "+rcNotes(r.id)).toLowerCase();
+    if(!hay.includes(RCUI.q)) return false;
+  }
+  return true;
+}
+
+function rcCard(r,clash){
+  const d=rcDaysSince(r.lastContact), stale=rcIsStale(r), n=r.submissions.length;
+  const contact=[
+    r.email?`<span><span class="rcl">Email</span>${esc(r.email)}</span>`:"",
+    r.phone?`<span><span class="rcl">Phone</span>${esc(r.phone)}</span>`:"",
+    r.linkedin?`<span><span class="rcl">LinkedIn</span>${esc(r.linkedin)}</span>`:""
+  ].join("");
+  const subRows=r.submissions.map(s=>{
+    const others=((clash[rcSlug(s.co)]||{who:[]}).who).filter(w=>w!==r.name);
+    return `<div class="rc-sub${others.length?" rc-clash":""}">
+        <span class="sco">${esc(s.co)}</span>
+        <span class="sdt">${esc(s.date)}</span>
+        <span class="rc-pill rc-o-${rcSlug(s.outcome)}">${esc(s.outcome)}</span>
+        ${others.length?`<span class="sflag">⚠ Also claimed by ${esc(others.join(", "))} — confirm which submission the client actually has on file before either one advances.</span>`:""}
+      </div>`;
+  }).join("");
+  return `<article class="rcard${stale?" rc-is-stale":""}" data-rcid="${esc(r.id)}">
+    <div class="rc-main">
+      <div class="rc-title"><span class="nm">${esc(r.name)}</span><span class="fm">${esc(r.firm)}</span><span class="rc-pill rc-ty-${rcSlug(r.type)}">${esc(r.type)}</span><span class="rc-pill rc-tk-${rcSlug(r.track)}">${esc(r.track)}</span></div>
+      <div class="rc-meta">
+        <span class="m">last contact ${esc(r.lastContact)}${d===null?"":" · "+d+"d ago"}</span>
+        ${r.nextTouch?`<span class="m">next touch ${esc(r.nextTouch)}</span>`:""}
+        ${stale?`<span class="rc-stale">⏳ stale · ${d}d since contact</span>`:""}
+      </div>
+      ${contact?`<p class="rc-contact">${contact}</p>`:""}
+      <div class="rc-subs">
+        <h4><span>Submissions on record</span><span class="n">${n}</span></h4>
+        ${n?subRows:`<p class="rc-nosubs">None yet — nothing submitted through this recruiter.</p>`}
+      </div>
+      <p class="rc-notes">${esc(r.notes)}</p>
+    </div>
+    <div class="rc-notebox">
+      <h4>Your notes</h4>
+      <textarea class="notes" data-act="rcnotes" placeholder="Call outcomes, submissions to confirm, rate or comp discussed, follow-ups…" aria-label="Notes for ${esc(r.name)}">${esc(rcNotes(r.id))}</textarea>
+    </div>
+  </article>`;
+}
+
+// controls render once; only the board re-renders on filter/search so the search box keeps focus
+function renderRecruiters(){
+  const typeOpts=`<option value="all">Any type</option>`+RC_TYPES.map(t=>`<option value="${t}">${t}</option>`).join("");
+  const trackOpts=`<option value="all">Any track</option>`+RC_TRACKS.map(t=>`<option value="${t}">${t}</option>`).join("");
+  document.getElementById("rc-board").innerHTML=`<div id="rcAlert"></div>
+    <div class="rc-controls">
+      <select class="ctl" id="rcTypeFilter" aria-label="Filter by recruiter type">${typeOpts}</select>
+      <select class="ctl" id="rcTrackFilter" aria-label="Filter by track">${trackOpts}</select>
+      <input class="search" id="rcSearch" type="search" placeholder="Search name, firm, client, notes…" aria-label="Search recruiters">
+    </div>
+    <p class="rc-count" id="rcCount"></p><div id="rcBoard"></div>`;
+  renderRcAlert();
+  renderRcBoard();
+}
+
+function renderRcAlert(){
+  const cl=rcClashes();
+  document.getElementById("rcAlert").innerHTML=cl.length
+    ?`<div class="rc-dupe"><b>⚠ Double-submission check — ${cl.length} client${cl.length===1?"":"s"} on record with more than one recruiter.</b> Two parties submitting you to the same client can disqualify you outright or start a placement-fee dispute that kills the offer. Confirm which submission the client actually has before letting a second one proceed.<ul>${cl.map(x=>`<li><b>${esc(x.co)}</b> — ${esc(x.who.join(" · "))}</li>`).join("")}</ul></div>`
+    :`<div class="rc-ok">✓ Double-submission check clear — no client appears under more than one recruiter.</div>`;
+}
+
+function renderRcBoard(){
+  const clash=rcClashMap();
+  // stale first (those are the ones needing a touch), then most-recently-contacted
+  const shown=RECRUITERS.filter(rcMatches).slice().sort((a,b)=>
+    (rcIsStale(b)?1:0)-(rcIsStale(a)?1:0) || String(b.lastContact).localeCompare(String(a.lastContact)));
+  const subs=RECRUITERS.reduce((a,r)=>a+r.submissions.length,0);
+  const stale=RECRUITERS.filter(rcIsStale).length;
+  document.getElementById("rcCount").innerHTML=`<b>${shown.length}</b> of <b>${RECRUITERS.length}</b> recruiter${RECRUITERS.length===1?"":"s"} shown · <b>${subs}</b> submission${subs===1?"":"s"} on record · <b>${stale}</b> stale (${RC_STALE_DAYS}+ days since contact)`;
+  document.getElementById("rcBoard").innerHTML=shown.length
+    ?`<div class="rc-list">${shown.map(r=>rcCard(r,clash)).join("")}</div>`
+    :`<p class="empty">No recruiters match these filters.</p>`;
+}
+
+// own listeners — the shortlist/prep/contract view switcher does not know about this panel
+document.addEventListener("click",e=>{
+  const vt=e.target.closest(".viewtab");
+  if(vt){document.getElementById("view-recruiters").classList.toggle("hidden",vt.dataset.view!=="recruiters");return;}
+});
+document.addEventListener("change",e=>{
+  if(e.target.id==="rcTypeFilter"){RCUI.type=e.target.value;renderRcBoard();return;}
+  if(e.target.id==="rcTrackFilter"){RCUI.track=e.target.value;renderRcBoard();return;}
+});
+document.addEventListener("input",e=>{
+  const art=e.target.closest(".rcard");
+  if(art&&e.target.dataset.act==="rcnotes"){RC.notes[art.dataset.rcid]=e.target.value;rcSave();return;}
+  if(e.target.id==="rcSearch"){RCUI.q=e.target.value.trim().toLowerCase();renderRcBoard();return;}
+});
+
+renderRecruiters();
+</script>
+</body>
+</html>

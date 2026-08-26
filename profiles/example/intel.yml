@@ -1,0 +1,26 @@
+# Company intel, shown inside each role's Details panel.
+# The key MUST exactly match that role's `company:` in roles.yml.
+# All fields optional — omit what you haven't researched yet.
+
+intel:
+  Northwind Systems:
+    status: Private · Series C ($60M, 2025) · ~8 yrs old
+    headcount: ~400 (LinkedIn, Aug 2026)
+    glassdoor: 3.9/5 (n≈180)
+    signal: >
+      Shipped a public developer platform in 2026 and has been hiring
+      steadily through it; no layoff events recorded on layoffs.fyi.
+    stability: >
+      Green — funded recently, hiring into the team you'd join, and the
+      product you'd support is the one they're betting on.
+
+  Mesa Health:
+    status: Private · Series B ($28M, 2024)
+    headcount: ~150 (aggregator estimate)
+    glassdoor: 3.2/5 (n≈40) — thin sample, read with caution
+    signal: >
+      Healthcare scheduling; won two large health-system contracts in 2026.
+      Engineering blog has gone quiet since March.
+    stability: >
+      Yellow — real revenue and a Staff-level opening, but a small team and
+      a quiet blog. Ask directly about runway and the last funding event.

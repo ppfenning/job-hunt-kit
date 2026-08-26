@@ -1,0 +1,63 @@
+# The board. One entry per role you're tracking.
+# `id` must be unique and stable — your saved status/notes key off it.
+# Field reference: docs/SCHEMA.md#roles
+
+roles:
+  - id: northwind-plat
+    company: Northwind Systems
+    title: Senior Platform Engineer
+    track: plat                     # must match a tracks[].id in profile.yml
+    tier: gold                      # gold | silver | bronze — your pursuit priority
+    level: Senior
+    remote: Remote · US
+    comp: $185K–225K
+    compSort: 205                   # midpoint in $K; used by "Sort: Comp"
+    basis: ok                       # ok = clears your target, warn = caveat
+    basisTxt: base · posted
+    verif: verified 2026-08-20
+    verifState: ok
+    url: https://example.com/jobs/northwind-platform
+    cv: Platform                    # which résumé variant to send
+    stack: [Go, Kubernetes, Terraform, AWS, Postgres]
+    # `why` is the one field that renders raw HTML — <span class='hl'> highlights.
+    why: >
+      <span class='hl'>Your strongest fit.</span> Go + Postgres + AWS is
+      verbatim your current stack, pointed at the platform mandate you're
+      trying to move into. The K8s gap is the only real stretch.
+    jd: >
+      Own the internal deployment platform — Go services on EKS, Terraform
+      modules consumed by product teams, and the CI path from merge to prod.
+    fit: { stack: 30, level: 18, comp: 20, ml: 10, remote: 9, total: 87 }
+    points:
+      - Your ECS→Fargate migration is the closest thing to their EKS mandate — lead with it.
+      - They ask for Terraform module authorship; you have consumed modules, not written them. Frame honestly as the growth edge.
+      - Ask what "platform team" means here — enablement, or ticket queue?
+
+  - id: mesa-backend
+    company: Mesa Health
+    title: Staff Backend Engineer
+    track: be
+    tier: silver
+    level: Staff
+    remote: Remote · US (EST hours)
+    comp: $160K–195K
+    compSort: 177
+    basis: warn
+    basisTxt: floor under target
+    verif: verified 2026-08-18
+    verifState: ok
+    url: https://example.com/jobs/mesa-backend
+    cv: Backend
+    stack: [Go, Postgres, gRPC, AWS]
+    why: >
+      Strong stack overlap and a real Staff title. <span class='hl'>The band
+      floor is under your number</span> — anchor at the top and confirm the
+      EST-hours requirement before investing in a loop.
+    jd: >
+      Lead backend architecture for a clinical scheduling product — Go
+      services, Postgres, gRPC between internal services.
+    fit: { stack: 28, level: 20, comp: 14, ml: 8, remote: 7, total: 77 }
+    points:
+      - Staff title with real scope; ask what the promotion path looked like for the last person hired at this level.
+      - Healthcare means compliance review in the deploy path — ask how that affects release cadence.
+      - EST hours is a lifestyle constraint, not a location one. Get it in writing.

@@ -1,0 +1,122 @@
+# Interview prep. Four independent sections — seed whichever you need.
+# Your self-ratings and flashcard progress save in the browser, not here.
+
+# ── Behavioral (STAR) ───────────────────────────────────────────────────
+# s/t/a/r = Situation, Task, Action, Result. Write them as you'd say them
+# out loud, not as bullet points.
+behavioral:
+  - id: incident-checkout-timeouts
+    q: Tell me about a time you led the response to a production incident.
+    tags: [Ownership, Incident response]
+    s: >
+      Checkout started timing out for about 4% of requests during a Friday
+      evening traffic peak. It wasn't a full outage, so nothing paged — it
+      surfaced as a support ticket trickle.
+    t: >
+      I picked it up as incident lead: find the cause, stop the bleeding,
+      and make sure the same class of failure would page us next time.
+    a: >
+      I correlated the timeouts against a connection-pool metric and found a
+      slow query holding connections during a nightly reindex. I shipped a
+      statement timeout as the immediate stop-gap, moved the reindex behind
+      a maintenance window, and added an alert on pool saturation.
+    r: >
+      Timeouts went to zero within the hour. The pool-saturation alert has
+      fired twice since, both times before any customer noticed.
+    tip: >
+      Lead with the detection gap, not the query — the interesting part is
+      that a partial failure didn't page anyone.
+
+  - id: disagreement-rewrite
+    q: Tell me about a time you disagreed with a technical decision.
+    tags: [Influence, Judgment]
+    s: >
+      The team proposed rewriting our billing service in a new language as
+      part of a reliability push.
+    t: >
+      I thought the reliability problems were in the retry logic, not the
+      language, and wanted that tested before committing a quarter to it.
+    a: >
+      I asked for two weeks to instrument the existing service first. The
+      traces showed a non-idempotent retry path causing duplicate charges —
+      a bug the rewrite would have faithfully reproduced.
+    r: >
+      We fixed the retry path in days. The rewrite was shelved, and the
+      instrumentation became the on-call dashboard.
+    tip: Land it as "I asked for evidence", not "I was right".
+
+# ── Flashcards ──────────────────────────────────────────────────────────
+# `cat` groups them into decks. Keep answers spoken-length.
+flashcards:
+  - cat: Databases
+    q: What problem do database indexes create, not just solve?
+    a: >
+      Every index is a write amplifier — inserts and updates must maintain
+      it, and it consumes cache that the table itself wanted. An unused
+      index is pure cost. The follow-up worth raising is that a composite
+      index's column order determines which queries it can serve at all.
+
+  - cat: Databases
+    q: Explain the difference between a transaction isolation level and a lock.
+    a: >
+      A lock is the mechanism; an isolation level is the guarantee. The
+      level says which anomalies you're allowed to observe — dirty reads,
+      non-repeatable reads, phantoms — and the engine chooses locks or MVCC
+      snapshots to deliver it. Naming the anomaly you're preventing is more
+      precise than naming the level.
+
+  - cat: Distributed systems
+    q: When is at-least-once delivery the wrong default?
+    a: >
+      When the consumer isn't idempotent. At-least-once plus a
+      non-idempotent handler is how you get duplicate charges. Either make
+      the handler idempotent with a dedupe key, or accept at-most-once and
+      the loss it implies. "Exactly-once" is normally at-least-once plus
+      idempotency, not a transport guarantee.
+
+# ── Per-company prep ────────────────────────────────────────────────────
+companyPrep:
+  - company: Northwind Systems
+    role: Senior Platform Engineer
+    focus: >
+      Building the internal platform product teams deploy through — the
+      paved road from merge to production.
+    themes:
+      - platform-as-a-product thinking
+      - Kubernetes and Terraform in an enablement role
+      - developer experience and deploy safety
+    theyValue: >
+      Engineers who treat internal teams as customers and can point at
+      adoption, not just infrastructure they built.
+    yourAngles:
+      - You migrated services to Fargate and drove the adoption, not just the infrastructure
+      - You have on-call scar tissue that informs what guardrails actually matter
+      - You have consumed Terraform modules heavily — name the authorship gap before they find it
+    askThem:
+      - Is the platform team measured on adoption, or on tickets closed?
+      - Who decides when a product team must migrate — you, or them?
+      - What's the last thing the platform team shipped that teams were excited about?
+    watchOut: >
+      "Platform engineer" sometimes means a ticket queue for cloud access.
+      Ask what they shipped, and who chose to use it.
+
+# ── System design ───────────────────────────────────────────────────────
+sysdesign:
+  - title: Multi-tenant deployment platform
+    prompt: >
+      Design an internal platform that lets product teams deploy services
+      safely, without each team needing to understand the cluster.
+    approach:
+      - "Requirements: N teams, independent deploy cadence, blast-radius isolation, rollback in minutes, an audit trail"
+      - "Interface first: what does a team declare? A manifest of service, resources, dependencies — not raw cluster YAML"
+      - "Control plane reconciles declared state; data plane is the cluster. Keep the two separable"
+      - "Progressive delivery: health-gated rollout, automatic rollback on SLO regression"
+      - "Multi-tenancy: namespace isolation, resource quotas, network policy defaults that deny"
+      - "Observability is part of the product — a team gets dashboards and alerts by deploying, not by asking"
+    yourEdge: >
+      You've been the customer of a bad version of this, so lead with the
+      failure modes you personally hit rather than a reference architecture.
+    tradeoffs:
+      - Golden path vs escape hatch — what happens when a team genuinely needs raw access?
+      - Build on a managed offering vs run your own control plane, given team size
+      - How much does the platform enforce vs merely recommend, and who arbitrates?

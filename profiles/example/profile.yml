@@ -1,0 +1,98 @@
+# ─────────────────────────────────────────────────────────────────────────
+# Who you are and what you're looking for.
+# Everything here is example data for a fictional person — replace it all.
+# Field reference: docs/SCHEMA.md
+# ─────────────────────────────────────────────────────────────────────────
+
+owner: Alex Rivera
+title: Role Shortlist — Senior Backend / Platform
+
+eyebrow: Career Move · Working Shortlist
+headline: Roles matched to your profile
+
+# Copy fields may contain inline HTML (<b>, <i>). Everything in the data
+# files below is escaped for you — only this file's prose renders as markup.
+lede: >
+  A ranked, trackable shortlist for <b>Alex Rivera</b> — 7 yrs backend
+  engineering, moving toward platform/infra. Filtered to <b>remote-friendly
+  US</b> · <b>Senior/Staff</b> · <b>base ≥ $170K</b>, scored against your
+  stack. Set a status on any role — it saves in your browser. Open
+  <b>Details</b> for talking points, which résumé to send, and the fit
+  breakdown.
+
+# The chips under the headline — your search criteria at a glance.
+spec:
+  - { icon: "📍", label: "Remote · US" }
+  - { icon: "🎚", label: "Senior → Staff" }
+  - { icon: "💵", label: "base ≥ $170K" }
+  - { icon: "🧰", label: "Backend + Platform" }
+
+# The lanes you're pursuing. `id` is what each role's `track` refers to.
+# Two or three works best; the board gets a filter button per track.
+tracks:
+  - { id: be,   label: "Backend",  color: "var(--accent)" }
+  - { id: plat, label: "Platform", color: "#8E6BB5" }
+
+# Labels for the green/amber dot next to a posted comp range.
+comp:
+  okLabel: base clears $170K
+  warnLabel: floor under target
+
+# How many postings you tallied the skill counts against (the "/N roles"
+# denominator in the skill map). Defaults to your number of roles.
+postingsSurveyed: 14
+
+# How a role's fit score breaks down. `key` must match the keys you use under
+# `fit:` in roles.yml. Rename or re-weight these to suit your own search —
+# a designer's "Leverage" row might be "Portfolio fit", for instance.
+fitWeights:
+  - { key: stack,  label: Stack,    max: 35 }
+  - { key: level,  label: Level,    max: 20 }
+  - { key: comp,   label: Comp,     max: 20 }
+  - { key: ml,     label: Leverage, max: 15 }
+  - { key: remote, label: Remote,   max: 10 }
+
+skillsNote: >
+  Tallied across the postings surveyed so far. Your core (Go, Postgres,
+  Kubernetes, AWS) is what the market is asking for; the gaps below are
+  ranked by how often they showed up in roles you actually want.
+
+prepIntro: >
+  Prep built around <b>your real work</b> and your live application pipeline.
+  Reveal answers to self-test — your ratings and flashcard progress save
+  privately in this browser.
+
+# Footer bullets. Keep the Tracker one; it's true of every build.
+notes:
+  - title: Method
+    body: >
+      Postings gathered from remote boards and company career pages, then
+      re-checked before applying. Fit weighs stack (35), level (20), posted
+      comp (20), leverage (15), and remote/stability (10) — open a role's
+      <b>Details</b> to see its breakdown.
+  - title: Tracker
+    body: >
+      Status, star, and notes save to <b>this browser's local storage</b> —
+      private to you, never uploaded. Clearing site data resets them.
+  - title: Time-sensitive
+    body: >
+      Postings churn and comp bands get edited. Re-verify a range before you
+      use it as an anchor in a negotiation.
+  - title: Company intel
+    body: >
+      Gathered from public sources (earnings, layoffs.fyi, Glassdoor) and
+      dated. Verify before acting on it.
+
+# ── Skill map ───────────────────────────────────────────────────────────
+# `ct` = how many postings in your list mention it. `prio` flags a gap
+# worth closing first.
+skillsHave:
+  - { nm: "Go",         ct: 12, note: "Named in most of your target backend roles." }
+  - { nm: "PostgreSQL", ct: 11, note: "Universal. Your query-tuning work is the story to tell." }
+  - { nm: "AWS",        ct: 10, note: "ECS/Lambda depth reads well against most postings." }
+  - { nm: "Docker",     ct: 9,  note: "Table stakes — assumed, rarely a differentiator." }
+
+skillsGap:
+  - { nm: "Kubernetes", ct: 8, prio: true,  note: "You run ECS; K8s is the gap. Highest ROI for platform roles." }
+  - { nm: "Terraform",  ct: 7, prio: true,  note: "Appears in every platform posting. Worth a weekend project." }
+  - { nm: "gRPC",       ct: 4, prio: false, note: "Nice-to-have; REST experience transfers in interviews." }

@@ -1,0 +1,21 @@
+# ── Your actual job search never gets committed ─────────────────────────
+# Seed profiles hold salary targets, recruiter names and emails, and notes
+# on companies you're interviewing with. Keep them out of git entirely.
+profiles/private/
+profiles/*.local/
+
+# Built output — regenerate it with build.py
+dist/
+
+# Résumés and other source documents you seed from
+*.pdf
+*.docx
+resume*
+r[ée]sum[ée]*
+
+__pycache__/
+*.pyc
+.DS_Store
+.venv/
+venv/
+node_modules/
