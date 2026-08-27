@@ -13,7 +13,7 @@
     --accent:#0C7C8C; --accent-ink:#075965;
     --gold:#B7862B; --gold-soft:#EFE0BC; --silver:#7C8794; --silver-soft:#DFE3E8; --bronze:#A96A3F; --bronze-soft:#EBD8C8;
     --ok:#2E7D5B; --ok-soft:#D8ECE1; --warn:#B65A34; --warn-soft:#F1DDD2;
-    --st-applied:#2F6FB0; --st-screen:#7A5AA6; --st-interview:#B5852B; --st-offer:#2E7D5B; --st-passed:#9A5442; --st-saved:#4A7E86;
+    --st-applied:#2F6FB0; --st-screen:#7A5AA6; --st-interview:#B5852B; --st-offer:#2E7D5B; --st-passed:#9A5442; --st-saved:#4A7E86; --st-noint:#6B7280;
     --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
     --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     --maxw:1120px;
@@ -24,10 +24,10 @@
     --accent:#3FB6C9; --accent-ink:#7FD3E0;
     --gold:#DDB55C; --gold-soft:#35301E; --silver:#AEB7C4; --silver-soft:#262C35; --bronze:#CE9160; --bronze-soft:#33261C;
     --ok:#57C08E; --ok-soft:#16281F; --warn:#E08A5F; --warn-soft:#2E1D14;
-    --st-applied:#5E9BD8; --st-screen:#B79AD8; --st-interview:#E0B45C; --st-offer:#57C08E; --st-passed:#D4917B; --st-saved:#6FB3BD;
+    --st-applied:#5E9BD8; --st-screen:#B79AD8; --st-interview:#E0B45C; --st-offer:#57C08E; --st-passed:#D4917B; --st-saved:#6FB3BD; --st-noint:#9AA3B0;
   }}
-  :root[data-theme="light"]{--bg:#F4F6F8;--surface:#FFFFFF;--surface-2:#EEF1F5;--line:#DFE4EA;--ink:#171B21;--ink-2:#4A525E;--ink-3:#757F8C;--accent:#0C7C8C;--accent-ink:#075965;--gold:#B7862B;--gold-soft:#EFE0BC;--silver:#7C8794;--silver-soft:#DFE3E8;--bronze:#A96A3F;--bronze-soft:#EBD8C8;--ok:#2E7D5B;--ok-soft:#D8ECE1;--warn:#B65A34;--warn-soft:#F1DDD2;--st-applied:#2F6FB0;--st-screen:#7A5AA6;--st-interview:#B5852B;--st-offer:#2E7D5B;--st-passed:#9A5442;--st-saved:#4A7E86;}
-  :root[data-theme="dark"]{--bg:#0D1015;--surface:#161A21;--surface-2:#1D222B;--line:#2A313C;--ink:#E7EBF1;--ink-2:#A9B2BF;--ink-3:#767F8D;--accent:#3FB6C9;--accent-ink:#7FD3E0;--gold:#DDB55C;--gold-soft:#35301E;--silver:#AEB7C4;--silver-soft:#262C35;--bronze:#CE9160;--bronze-soft:#33261C;--ok:#57C08E;--ok-soft:#16281F;--warn:#E08A5F;--warn-soft:#2E1D14;--st-applied:#5E9BD8;--st-screen:#B79AD8;--st-interview:#E0B45C;--st-offer:#57C08E;--st-passed:#D4917B;--st-saved:#6FB3BD;}
+  :root[data-theme="light"]{--bg:#F4F6F8;--surface:#FFFFFF;--surface-2:#EEF1F5;--line:#DFE4EA;--ink:#171B21;--ink-2:#4A525E;--ink-3:#757F8C;--accent:#0C7C8C;--accent-ink:#075965;--gold:#B7862B;--gold-soft:#EFE0BC;--silver:#7C8794;--silver-soft:#DFE3E8;--bronze:#A96A3F;--bronze-soft:#EBD8C8;--ok:#2E7D5B;--ok-soft:#D8ECE1;--warn:#B65A34;--warn-soft:#F1DDD2;--st-applied:#2F6FB0;--st-screen:#7A5AA6;--st-interview:#B5852B;--st-offer:#2E7D5B;--st-passed:#9A5442;--st-saved:#4A7E86;--st-noint:#6B7280;}
+  :root[data-theme="dark"]{--bg:#0D1015;--surface:#161A21;--surface-2:#1D222B;--line:#2A313C;--ink:#E7EBF1;--ink-2:#A9B2BF;--ink-3:#767F8D;--accent:#3FB6C9;--accent-ink:#7FD3E0;--gold:#DDB55C;--gold-soft:#35301E;--silver:#AEB7C4;--silver-soft:#262C35;--bronze:#CE9160;--bronze-soft:#33261C;--ok:#57C08E;--ok-soft:#16281F;--warn:#E08A5F;--warn-soft:#2E1D14;--st-applied:#5E9BD8;--st-screen:#B79AD8;--st-interview:#E0B45C;--st-offer:#57C08E;--st-passed:#D4917B;--st-saved:#6FB3BD;--st-noint:#9AA3B0;}
 
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased}
@@ -82,6 +82,7 @@
   select.ctl{padding-right:26px;appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--ink-3) 50%),linear-gradient(135deg,var(--ink-3) 50%,transparent 50%);background-position:calc(100% - 14px) 55%,calc(100% - 9px) 55%;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
   input.search{font-family:var(--sans);font-size:13px;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:7px 14px;min-width:180px;flex:1;max-width:280px}
   .starbtn[aria-pressed="true"]{background:var(--gold-soft);border-color:var(--gold);color:var(--gold)}
+  .hidebtn[aria-pressed="true"]{background:var(--surface-2);border-color:var(--st-noint);color:var(--ink-2)}
   .legend{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);display:flex;flex-wrap:wrap;gap:6px 16px;margin:2px 0 26px}
   .legend .key{display:inline-flex;align-items:center;gap:6px}
   .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
@@ -140,6 +141,7 @@
   .status.s-offer{border-color:var(--st-offer);color:var(--st-offer)}
   .status.s-passed{border-color:var(--st-passed);color:var(--st-passed)}
   .status.s-saved{border-color:var(--st-saved);color:var(--st-saved)}
+  .status.s-not-interested{border-color:var(--st-noint);color:var(--st-noint);opacity:.75}
   .starbtn2{font-size:15px;line-height:1;background:none;border:none;cursor:pointer;color:var(--ink-3);padding:2px 4px}
   .starbtn2[aria-pressed="true"]{color:var(--gold)}
   .applied-date{font-family:var(--mono);font-size:10.5px;color:var(--ink-3)}
@@ -408,12 +410,13 @@
       <select class="ctl" id="statusFilter" aria-label="Filter by status">
         <option value="all">Any status</option>
         <option value="none">Not started</option>
-        <option value="Saved">Saved</option><option value="Applied">Applied</option><option value="Screening">Screening</option><option value="Interview">Interview</option><option value="Offer">Offer</option><option value="Passed">Passed</option>
+        <option value="Saved">Saved</option><option value="Applied">Applied</option><option value="Screening">Screening</option><option value="Interview">Interview</option><option value="Offer">Offer</option><option value="Passed">Passed</option><option value="Not interested">Not interested</option>
       </select>
       <select class="ctl" id="sortBy" aria-label="Sort by">
         <option value="fit">Sort: Fit</option><option value="comp">Sort: Comp</option><option value="company">Sort: Company</option>
       </select>
       <button class="ctl starbtn" id="starOnly" aria-pressed="false">★ Starred only</button>
+      <button class="ctl hidebtn" id="hideNotInt" aria-pressed="true">Hide “Not interested”</button>
       <input class="search" id="search" type="search" placeholder="Search company, title, stack…" aria-label="Search roles">
     </div>
     <div class="legend">
@@ -478,7 +481,10 @@ const TIERS=[
   {key:"silver",mark:"◆ Silver",desc:"Strong, with one softer dimension."},
   {key:"bronze",mark:"◆ Bronze",desc:"Worth a look — carries a real caveat (comp, estimate, or stretch)."}
 ];
-const STATUSES=["Saved","Applied","Screening","Interview","Offer","Passed"];
+const STATUSES=["Saved","Applied","Screening","Interview","Offer","Passed","Not interested"];
+// Status -> CSS class. Multi-word statuses need slugging: "Not interested" would
+// otherwise yield the class "s-not interested", which is two classes, not one.
+function statusClass(s){return "s-"+s.toLowerCase().replace(/\s+/g,"-");}
 
 // ---- state (localStorage, defensive) ----
 const KEY="jobtracker:v1";
@@ -518,7 +524,7 @@ function intelBlock(r){
 }
 function card(r){
   const st=roleState(r.id);
-  const scls=st.status?"s-"+st.status.toLowerCase():"";
+  const scls=st.status?statusClass(st.status):"";
   const opts=`<option value="">Not started</option>`+STATUSES.map(s=>`<option value="${s}"${st.status===s?" selected":""}>${s}</option>`).join("");
   return `<article class="role${st.starred?" starred":""}" data-id="${r.id}" data-track="${r.track}">
     <div class="rmain">
@@ -563,6 +569,7 @@ function currentFilters(){
     status:document.getElementById("statusFilter").value,
     sort:document.getElementById("sortBy").value,
     starOnly:document.getElementById("starOnly").getAttribute("aria-pressed")==="true",
+    hideNotInt:document.getElementById("hideNotInt").getAttribute("aria-pressed")==="true",
     q:document.getElementById("search").value.trim().toLowerCase()
   };
 }
@@ -571,6 +578,9 @@ function matches(r,f){
   const st=roleState(r.id);
   if(f.status==="none"&&st.status) return false;
   if(f.status!=="all"&&f.status!=="none"&&st.status!==f.status) return false;
+  // Hidden by default, but selecting "Not interested" in the status filter is an
+  // explicit request to see them and must win over the blanket hide.
+  if(f.hideNotInt&&st.status==="Not interested"&&f.status!=="Not interested") return false;
   if(f.starOnly&&!st.starred) return false;
   if(f.q){const hay=(r.company+" "+r.title+" "+r.stack.join(" ")).toLowerCase();if(!hay.includes(f.q)) return false;}
   return true;
@@ -598,7 +608,7 @@ function render(){
 function renderPipeline(){
   const counts={};STATUSES.forEach(s=>counts[s]=0);let starred=0;
   ROLES.forEach(r=>{const st=roleState(r.id);if(st.status&&counts[st.status]!=null)counts[st.status]++;if(st.starred)starred++;});
-  const colors={Saved:"--st-saved",Applied:"--st-applied",Screening:"--st-screen",Interview:"--st-interview",Offer:"--st-offer",Passed:"--st-passed"};
+  const colors={Saved:"--st-saved",Applied:"--st-applied",Screening:"--st-screen",Interview:"--st-interview",Offer:"--st-offer",Passed:"--st-passed","Not interested":"--st-noint"};
   const active=STATUSES.filter(s=>counts[s]>0);
   const pills=active.map(s=>`<span class="pill"><span class="swatch" style="background:var(${colors[s]})"></span>${s} <span class="c">${counts[s]}</span></span>`);
   let out=`<span class="pill"><span class="swatch" style="background:var(--ink-3)"></span>Tracked <span class="c">${Object.values(counts).reduce((a,b)=>a+b,0)}</span>/${ROLES.length}</span>`;
@@ -628,7 +638,7 @@ document.addEventListener("click",e=>{
   if(star){const art=star.closest(".role");const st=roleState(art.dataset.id);st.starred=!st.starred;saveState(STATE);render();return;}
   const seg=e.target.closest('.seg button');
   if(seg){document.querySelectorAll('.seg button').forEach(b=>b.setAttribute("aria-pressed",b===seg?"true":"false"));render();return;}
-  if(e.target.id==="starOnly"){const on=e.target.getAttribute("aria-pressed")==="true";e.target.setAttribute("aria-pressed",(!on).toString());render();return;}
+  if(e.target.id==="starOnly"||e.target.id==="hideNotInt"){const on=e.target.getAttribute("aria-pressed")==="true";e.target.setAttribute("aria-pressed",(!on).toString());render();return;}
 });
 
 renderSkills();
