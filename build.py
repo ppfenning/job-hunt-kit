@@ -98,7 +98,8 @@ LIST_DEFAULTS = {
     "recruiters": ["submissions"],
 }
 STR_DEFAULTS = {
-    "roles": ["why", "jd", "cv", "comp", "basisTxt", "verif", "level", "remote", "url"],
+    "roles": ["why", "jd", "cv", "comp", "basisTxt", "verif", "level", "remote", "url",
+              "source"],
     "behavioral": ["s", "t", "a", "r", "tip"],
     "companyPrep": ["focus", "theyValue", "watchOut", "role"],
     "sysdesign": ["prompt", "yourEdge"],
@@ -129,6 +130,15 @@ def _normalize(seed: dict) -> None:
                 v for k, v in r["fit"].items() if isinstance(v, (int, float)))
 
 
+# Provenance. AUTHORITATIVE_SOURCES are boards where the employer enters the
+# posting itself, so the band and remote flag are first-hand. The rest are
+# retellings — aggregators republish stale bands, and a recruiter's "up to
+# $230K" is a sales figure, not a posted range.
+AUTHORITATIVE_SOURCES = {"Ashby", "Greenhouse", "Lever", "Direct", "Wellfound"}
+SECONDHAND_SOURCES = {"BuiltIn", "LinkedIn", "Recruiter", "Referral", "Other"}
+ROLE_SOURCES = AUTHORITATIVE_SOURCES | SECONDHAND_SOURCES
+
+
 def _validate(seed: dict) -> None:
     """Catch the seed mistakes that would render as a broken board."""
     problems: list[str] = []
@@ -150,6 +160,9 @@ def _validate(seed: dict) -> None:
                 f"{where}: track `{r['track']}` is not one of {sorted(track_ids)}")
         if r.get("tier") not in ("gold", "silver", "bronze", None):
             problems.append(f"{where}: tier `{r.get('tier')}` must be gold/silver/bronze")
+        if r.get("source") and r["source"] not in ROLE_SOURCES:
+            problems.append(
+                f"{where}: source `{r['source']}` is not one of {sorted(ROLE_SOURCES)}")
         fit = r.get("fit") or {}
         missing = [k for k in fit_keys if k not in fit]
         if fit and missing:
@@ -262,6 +275,7 @@ def main() -> None:
         sys.exit(f"error: unresolved placeholders: {', '.join(leftover)}")
 
     # </script> inside a JSON string would close the block early.
+    seed["authoritativeSources"] = sorted(AUTHORITATIVE_SOURCES)
     payload = json.dumps(seed, ensure_ascii=False).replace("</", "<\\/")
     tmpl = tmpl.replace("/*__SEED__*/ null", payload, 1)
 

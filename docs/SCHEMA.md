@@ -48,6 +48,7 @@ Two exceptions render raw HTML on purpose:
 | `basisTxt` | string | e.g. `base · posted`, `OTE · estimated` |
 | `verif` / `verifState` | string / `ok`\|`warn` | When you last confirmed the posting is live |
 | `url` | string | Link to the posting |
+| `source` | string | Where the entry's facts came from. One of `Ashby`, `Greenhouse`, `Lever`, `Direct`, `Wellfound` (the employer enters these itself, so the band and remote flag are first-hand) or `BuiltIn`, `LinkedIn`, `Recruiter`, `Referral`, `Other` (a retelling — rendered with a warning chip). An unrecognised value fails the build. If a Wellfound or BuiltIn listing links out to an ATS, record **the ATS**, not the aggregator |
 | `cv` | string | Which résumé variant to send |
 | `stack` | list of strings | Also searched by the search box |
 | `why` | **HTML** | Your one-paragraph case for pursuing it |

@@ -18,6 +18,7 @@ roles:
     verifState: ok
     url: https://example.com/jobs/northwind-platform
     cv: Platform                    # which résumé variant to send
+    source: Greenhouse
     stack: [Go, Kubernetes, Terraform, AWS, Postgres]
     # `why` is the one field that renders raw HTML — <span class='hl'> highlights.
     why: >

@@ -142,6 +142,8 @@
   .status.s-passed{border-color:var(--st-passed);color:var(--st-passed)}
   .status.s-saved{border-color:var(--st-saved);color:var(--st-saved)}
   .status.s-not-interested{border-color:var(--st-noint);color:var(--st-noint);opacity:.75}
+  .src{font-size:11px;letter-spacing:.02em;padding:1px 7px;border-radius:999px;border:1px solid var(--line);color:var(--ink-3)}
+  .src.secondhand{border-color:var(--warn);color:var(--warn);background:var(--warn-soft)}
   .starbtn2{font-size:15px;line-height:1;background:none;border:none;cursor:pointer;color:var(--ink-3);padding:2px 4px}
   .starbtn2[aria-pressed="true"]{color:var(--gold)}
   .applied-date{font-family:var(--mono);font-size:10.5px;color:var(--ink-3)}
@@ -482,6 +484,16 @@ const TIERS=[
   {key:"bronze",mark:"◆ Bronze",desc:"Worth a look — carries a real caveat (comp, estimate, or stretch)."}
 ];
 const STATUSES=["Saved","Applied","Screening","Interview","Offer","Passed","Not interested"];
+// Boards where the employer enters the posting itself. Anything else is a
+// retelling — an aggregator republishing a stale band, or a recruiter quoting
+// a ceiling — and the chip says so rather than leaving them indistinguishable.
+const AUTHORITATIVE=new Set(SEED.authoritativeSources||[]);
+function sourceChip(src){
+  if(!src) return "";
+  const cls=AUTHORITATIVE.has(src)?"src":"src secondhand";
+  const tip=AUTHORITATIVE.has(src)?"From the employer's own posting":"Secondhand — not from a posting the employer controls";
+  return `<span class="${cls}" title="${tip}">${esc(src)}</span>`;
+}
 // Status -> CSS class. Multi-word statuses need slugging: "Not interested" would
 // otherwise yield the class "s-not interested", which is two classes, not one.
 function statusClass(s){return "s-"+s.toLowerCase().replace(/\s+/g,"-");}
@@ -531,7 +543,7 @@ function card(r){
       <div class="r-fit"><span class="num">${r.fit.total}</span><span class="lbl">Fit</span></div>
       <div class="r-body">
         <div class="r-title"><span class="co">${esc(r.company)}</span><span class="ti">${esc(r.title)}</span></div>
-        <div class="r-meta"><span class="chip chip-${r.track}">${trackLabel(r.track)}</span><span class="m">${esc(r.level)}</span><span class="m">${esc(r.remote)}</span></div>
+        <div class="r-meta"><span class="chip chip-${r.track}">${trackLabel(r.track)}</span><span class="m">${esc(r.level)}</span><span class="m">${esc(r.remote)}</span>${sourceChip(r.source)}</div>
         <ul class="stack">${r.stack.map(s=>`<li>${esc(s)}</li>`).join("")}</ul>
         <p class="why">${r.why}</p>
         ${r.flag?`<span class="flag"><span class="dot warn"></span>${esc(r.flag)}</span>`:""}
