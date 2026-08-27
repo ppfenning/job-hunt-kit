@@ -60,6 +60,38 @@ reports "no questions found" and silently skips Step 4. `questions=true` is a
 strict superset: it returns `questions`, `compliance`, `demographic_questions`
 *and* `content`.
 
+### Aggregators find; the ATS verifies
+
+Wellfound and BuiltIn are both fetchable without a login and are good places to
+*discover* a role. They are not where you should read its facts from. Both
+republish, and a band that has drifted since the employer changed it is worse
+than no band — it becomes an anchor in a negotiation.
+
+So: when an aggregator listing links out to a Greenhouse/Lever/Ashby posting,
+**follow the link and fetch the ATS record**, then set `source` to the ATS. The
+aggregator was the search engine, not the source.
+
+Two things only the ATS has:
+
+- **The application questions.** No aggregator carries them, and they are what
+  Step 4 exists for.
+- **Structured remote status.** Ashby's `workplaceType` beats any prose.
+
+**Wellfound is the exception worth knowing.** Many Wellfound roles are posted
+in-platform with no ATS behind them — the company enters the listing on
+Wellfound directly, and comp is mandatory there. For those, Wellfound *is*
+first-hand: set `source: Wellfound`, and expect no questions payload, because
+the application is in-platform too.
+
+**BuiltIn is always a republisher.** Set `source: BuiltIn` only if you genuinely
+cannot find the underlying posting, and treat the band as unconfirmed.
+
+**Nothing behind a login is reachable.** Web fetches run server-side with no
+access to the user's browser session, so being signed in changes nothing —
+saved jobs, profile-gated listings, and LinkedIn generally are all out of reach.
+LinkedIn InMail in particular can only be read via the notification emails it
+sends. When a role only exists behind a login, ask for the text to be pasted.
+
 Ashby exposes `workplaceType` as a structured enum (`Remote`/`Hybrid`/`OnSite`).
 Trust that field over any prose in the description — remote status is often
 role-by-role rather than company-wide.
@@ -139,6 +171,12 @@ The ones most often got wrong:
 - **`compSort`** — the **midpoint** of the posted range in $K, rounded
   (`$213–300K` → `256`). It drives the Sort-by-Comp view, so using the ceiling
   misorders the board.
+- **`source`** — where these facts came from, from the enum in `docs/SCHEMA.md`.
+  An unrecognised value fails the build. Record the **ATS**, not the aggregator
+  you found it through; use `Recruiter` when the numbers are recruiter-stated
+  and no posting was seen. It renders as a warning chip for secondhand sources,
+  so an entry built on a sales figure is visibly distinct from one built on a
+  posted band.
 - **`flag`** — the fatal-flaw badge. Any role with a disqualifier needs one; a
   badly-scoring entry with no `flag` reads as an unexplained low score.
 - **`track`** must be one of the profile's `tracks[].id`.
