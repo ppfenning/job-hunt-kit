@@ -115,3 +115,9 @@ Two rules make the difference:
 A ready-made prompt lives in [`../skills/seed-job-hunt/SKILL.md`](../skills/seed-job-hunt/SKILL.md).
 It's written for Claude Code but it's just structured instructions — paste it
 into any assistant.
+
+Once the board exists, [`../skills/apply-to-role/SKILL.md`](../skills/apply-to-role/SKILL.md)
+handles the other half: one posting at a time, end to end — fetch it, research
+the company, score it against *your* rubric, draft answers to the application
+questions, and append the `roles`/`intel` entries. Seeding fills a board;
+this one keeps it current.
