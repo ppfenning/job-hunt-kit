@@ -498,10 +498,44 @@ function sourceChip(src){
 // otherwise yield the class "s-not interested", which is two classes, not one.
 function statusClass(s){return "s-"+s.toLowerCase().replace(/\s+/g,"-");}
 
-// ---- state (localStorage, defensive) ----
+// Sync-state trackers declared here (not just at the bottom with the rest of
+// the sync module) because saveState() below runs during initial page load,
+// well before the bottom of the script — syncPush() needs SYNC_STORES to
+// already exist as {} at that point, or it hits a const-before-init error
+// and takes the whole page down with it.
+//
+// SYNC_TS must be seeded from something that survives a reload, not left as
+// a plain in-memory {} — otherwise the FIRST pull after every single page
+// load has no local timestamp to compare against, treats the server as
+// unconditionally authoritative, and clobbers a local edit that hadn't
+// reached the server yet (e.g. still sitting in the 600ms debounce window,
+// or the push simply lost the race against a fast refresh). That was the
+// "every refresh resets" bug. Fix: each store's own localStorage value is
+// wrapped as {value, updatedAt}, and loadXxx() below seeds SYNC_TS from the
+// persisted updatedAt — so a same-device reload always wins the comparison
+// against a stale server copy, even before any network round-trip.
+const SYNC_STORES={};
+let SYNC_TS={};
+const SYNC_PUSH_TIMERS={};
+function nowIso(){return new Date().toISOString();}
+function wrappedGet(storageKey){
+  try{
+    const raw=JSON.parse(localStorage.getItem(storageKey));
+    if(raw&&typeof raw==="object"&&!Array.isArray(raw)&&"value" in raw&&"updatedAt" in raw){
+      SYNC_TS[storageKey]=raw.updatedAt;
+      return raw.value;
+    }
+    return raw; // pre-migration unwrapped shape, or nothing saved yet
+  }catch(e){return null;}
+}
+function wrappedSet(storageKey,value,ts){
+  try{localStorage.setItem(storageKey,JSON.stringify({value:value,updatedAt:ts}));}catch(e){}
+}
+
+// ---- state (localStorage, defensive; also synced to /api/state if reachable — see bottom of file) ----
 const KEY="jobtracker:v1";
-function loadState(){try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return {}}}
-function saveState(s){try{localStorage.setItem(KEY,JSON.stringify(s))}catch(e){}}
+function loadState(){return wrappedGet(KEY)||{};}
+function saveState(s){syncPush(KEY,s);}
 let STATE=loadState();
 ROLES.forEach(function(r){if(r.seed&&!STATE[r.id]){STATE[r.id]={status:r.seed,starred:false,notes:"",applied:r.seedDate||""};}});
 saveState(STATE);
@@ -663,8 +697,8 @@ const COMPANY_PREP = SEED.companyPrep; //__IP_COMPANY__
 const SYSDESIGN = SEED.sysdesign; //__IP_SYSDESIGN__
 
 const IPKEY="ipprep:v1";
-function ipLoad(){try{return JSON.parse(localStorage.getItem(IPKEY))||{}}catch(e){return {}}}
-function ipSaveState(){try{localStorage.setItem(IPKEY,JSON.stringify(IP))}catch(e){}}
+function ipLoad(){return wrappedGet(IPKEY)||{};}
+function ipSaveState(){syncPush(IPKEY,IP);}
 let IP=ipLoad();IP.behav=IP.behav||{};IP.cards=IP.cards||{};
 
 function renderBehavioral(){
@@ -766,8 +800,8 @@ const CT_STAGES=["Lead","Screening","Submitted","Interviewing","Negotiating","Wo
 
 // ---- state (localStorage, own key — separate from jobtracker:v1 / ipprep:v1) ----
 const CTKEY="contract:v1";
-function ctLoad(){try{return JSON.parse(localStorage.getItem(CTKEY))||{}}catch(e){return {}}}
-function ctSave(){try{localStorage.setItem(CTKEY,JSON.stringify(CT))}catch(e){}}
+function ctLoad(){return wrappedGet(CTKEY)||{};}
+function ctSave(){syncPush(CTKEY,CT);}
 let CT=ctLoad();CT.notes=CT.notes||{};
 let CTUI={chan:"all",stage:"all",q:""};
 
@@ -862,8 +896,8 @@ const RC_STALE_DAYS=21;
 
 // ---- state (localStorage, own key — separate from jobtracker:v1 / ipprep:v1 / contract:v1) ----
 const RCKEY="recruiters:v1";
-function rcLoad(){try{return JSON.parse(localStorage.getItem(RCKEY))||{}}catch(e){return {}}}
-function rcSave(){try{localStorage.setItem(RCKEY,JSON.stringify(RC))}catch(e){}}
+function rcLoad(){return wrappedGet(RCKEY)||{};}
+function rcSave(){syncPush(RCKEY,RC);}
 let RC=rcLoad();RC.notes=RC.notes||{};
 let RCUI={type:"all",track:"all",q:""};
 
@@ -989,6 +1023,74 @@ document.addEventListener("input",e=>{
 });
 
 renderRecruiters();
+
+// ---- cross-device sync (optional) ----
+// If this page is served by job-hunt-kit's tiny state_server.py (jobs.lan is),
+// /api/state exists and per-device localStorage stops being the only copy of
+// status/stars/notes/flashcard progress. If it's absent (file://, a plain
+// static host, Home Assistant /local/), every fetch below fails silently and
+// the page behaves exactly as it always did — localStorage-only.
+SYNC_STORES[KEY]={apply:function(v){STATE=v;render();}};
+SYNC_STORES[IPKEY]={apply:function(v){IP=v;IP.behav=IP.behav||{};IP.cards=IP.cards||{};renderPrep();}};
+SYNC_STORES[CTKEY]={apply:function(v){CT=v;CT.notes=CT.notes||{};renderContract();}};
+SYNC_STORES[RCKEY]={apply:function(v){RC=v;RC.notes=RC.notes||{};renderRecruiters();}};
+
+function syncPull(){
+  fetch("/api/state").then(function(r){return r.ok?r.json():null;}).then(function(remote){
+    if(!remote)return;
+    Object.keys(SYNC_STORES).forEach(function(k){
+      const entry=remote[k];
+      if(!entry||entry.value==null)return;
+      // Only take the server's copy if it's actually newer than what THIS
+      // device already has persisted — SYNC_TS[k] was seeded from localStorage
+      // at load time (see wrappedGet), not left empty, so a same-device edit
+      // that hasn't reached the server yet survives this comparison instead
+      // of being silently overwritten by a stale server copy on every reload.
+      if(!SYNC_TS[k]||entry.updatedAt>SYNC_TS[k]){
+        SYNC_TS[k]=entry.updatedAt;
+        SYNC_STORES[k].apply(entry.value);
+        wrappedSet(k,entry.value,entry.updatedAt);
+      }
+    });
+  }).catch(function(){/* no sync server reachable — localStorage-only, as before */});
+}
+
+const SYNC_PENDING={};
+function doPush(key,obj){
+  delete SYNC_PENDING[key];
+  fetch("/api/state/"+encodeURIComponent(key),{
+    method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(obj),keepalive:true
+  }).then(function(r){return r.ok?r.json():null;})
+    .then(function(res){if(res&&res.updatedAt){SYNC_TS[key]=res.updatedAt;wrappedSet(key,obj,res.updatedAt);}})
+    .catch(function(){/* offline — localStorage already has our optimistic timestamp; next successful pull/push reconciles */});
+}
+
+function syncPush(key,obj){
+  if(!SYNC_STORES[key])return;
+  // Persist locally right away, synchronously, with a fresh timestamp — a
+  // refresh a moment later must never lose this even if the debounced
+  // network push below hasn't fired yet.
+  const ts=nowIso();
+  SYNC_TS[key]=ts;
+  wrappedSet(key,obj,ts);
+  SYNC_PENDING[key]=obj;
+  clearTimeout(SYNC_PUSH_TIMERS[key]);
+  SYNC_PUSH_TIMERS[key]=setTimeout(function(){doPush(key,obj);},600);
+}
+
+// Flush any still-debounced pushes immediately on the way out, so a fast
+// refresh or tab close doesn't leave an edit sitting unsent on the server
+// (the localStorage copy is already safe either way, per syncPush above —
+// this just gets other devices the update sooner instead of waiting for the
+// next edit on this device to carry it along).
+document.addEventListener("pagehide",function(){
+  Object.keys(SYNC_PENDING).forEach(function(key){
+    clearTimeout(SYNC_PUSH_TIMERS[key]);
+    doPush(key,SYNC_PENDING[key]);
+  });
+});
+
+syncPull();
 </script>
 </body>
 </html>

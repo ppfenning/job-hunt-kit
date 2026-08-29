@@ -82,6 +82,47 @@ docker run -d --name jobhunt --restart unless-stopped \
 Redeploying is `scp dist/index.html` over the mounted file — no rebuild, no
 restart.
 
+## Cross-device sync
+
+By default, status/star/notes/flashcard progress live in the browser's
+`localStorage` — per browser, per device. Open the tracker on your phone
+after updating a status on your desktop and you'll see the defaults, not
+what you set. That's not a bug, it's the tradeoff of "no server, no
+account": there's nowhere shared to put that state.
+
+If you want it shared across your own devices anyway, swap the plain
+`nginx:alpine` container above for `app/state_server.py` — stdlib-only
+(`http.server` + `sqlite3`, no pip installs), and it serves `index.html`
+exactly like nginx did, plus one small JSON API:
+
+```bash
+docker run -d --name jobhunt --restart unless-stopped \
+  -p 8080:80 -v /srv/jobhunt:/data -w /data \
+  python:3.12-alpine python3 /data/state_server.py --root /data --port 80
+```
+
+Copy `app/state_server.py` into `/srv/jobhunt/` alongside `index.html` first.
+It creates `/srv/jobhunt/state.db` (SQLite) on first run, storing one row per
+top-level state key (`jobtracker:v1`, `ipprep:v1`, `contract:v1`,
+`recruiters:v1`) — the same shape `localStorage` already used, just shared
+instead of per-device. `template.html`'s JS opportunistically pushes to
+`/api/state` (debounced) and pulls on load, and silently falls back to
+`localStorage`-only if `/api/state` isn't there — so this is fully optional
+and every other deployment mode above is unaffected whether you add it or
+not.
+
+**This changes your risk profile, not just your convenience.** Every other
+option on this page is read-only once deployed — worst case, someone reads
+your data. `state_server.py` adds a write path: anything that can reach the
+port can also overwrite your tracked statuses. Auth on this one matters more
+than "add it if you feel like it" — if you're putting this behind a reverse
+proxy, add basic auth or forward-auth to it same as you would `/local/`,
+unless you've deliberately decided (like a solo LAN-only deployment) that the
+write exposure is an acceptable trade for not needing a login. Restarting the
+container is required after `state_server.py` itself changes (unlike
+`index.html`, which it reads fresh on every request); `state.db` on the bind
+mount survives a restart or recreate either way.
+
 ## Static hosts (Netlify, Pages, S3)
 
 Technically trivial, and **the option most likely to leak your data.** Every

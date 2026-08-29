@@ -13,7 +13,13 @@ Four views in one page:
 | **Recruiters** | A lightweight CRM that flags stale contacts and warns when two recruiters submit you to the same company |
 
 Status, stars, notes, and flashcard progress save to **your browser's
-localStorage**. Nothing is uploaded, because there is nothing to upload to.
+localStorage** by default. Nothing is uploaded, because there is nothing to
+upload to. If localStorage isn't enough — the same tracker open on your phone
+and your desktop, wanting the same statuses on both — there's an optional tiny
+same-origin sync server (`app/state_server.py`, stdlib only) you can run
+instead of a plain static host; see [Cross-device sync](docs/DEPLOY.md#cross-device-sync)
+in the deploy guide. It's opt-in: skip it and the page behaves exactly as
+described above.
 
 ---
 
