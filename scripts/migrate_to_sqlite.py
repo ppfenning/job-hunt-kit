@@ -14,9 +14,11 @@ build, and the deployment is what has been edited since.
 
 Chrome (title, lede, spec chips, footer notes) is recovered from a built file
 by aligning it against app/template.html: wherever the template has a
-`{{PLACEHOLDER}}`, the built file has the value, and the literal text either
-side of the placeholder is the anchor. Verify a migration by rebuilding and
-diffing against the original — they should differ only in the seed line.
+`{{PLACEHOLDER}}`, the built file has the value, and the literal runs between
+placeholders are the anchors. That alignment only holds against the template
+revision that produced the build — pass `--template` when the template has
+moved on since (`git show <sha>:app/template.html > /tmp/t.html`). Losing it
+costs only chrome; entities and tracks import either way.
 
 Idempotent: re-running replaces rows by (kind, id), so a second pass over the
 same source is a no-op rather than a duplicate.
@@ -145,7 +147,11 @@ def extract_chrome(html: str, template: str) -> dict:
         probe = following.split("/*__SEED__*/")[0]
         end = html.find(probe, cursor) if probe else len(html)
         if end == -1:
-            print(f"  ! chrome {name}: lost alignment, skipping the rest",
+            print(f"  ! chrome: lost alignment at {name} — the template has "
+                  f"changed since this page was built, so page chrome (title, "
+                  f"lede, spec chips, footer notes) was NOT recovered.\n"
+                  f"    Entities and tracks are unaffected. To recover chrome "
+                  f"too, pass --template pointing at the matching revision.",
                   file=sys.stderr)
             break
         values[name] = html[cursor:end]
@@ -154,9 +160,9 @@ def extract_chrome(html: str, template: str) -> dict:
     return {CHROME_FIELDS[n]: v for n, v in values.items() if n in CHROME_FIELDS}
 
 
-def seed_from_html(html_path: str) -> tuple[dict, dict]:
+def seed_from_html(html_path: str, template_path: str | None = None) -> tuple[dict, dict]:
     html = open(html_path, encoding="utf-8").read()
-    template = open(TEMPLATE, encoding="utf-8").read()
+    template = open(template_path or TEMPLATE, encoding="utf-8").read()
 
     m = re.search(r'const SEED\s*=\s*', html)
     start = html.index("{", m.end()) if m else html.index('{"roles"')
@@ -253,6 +259,12 @@ def main() -> None:
     src = ap.add_mutually_exclusive_group(required=True)
     src.add_argument("--profile", help="directory holding the seed YAML files")
     src.add_argument("--from-html", help="a previously built index.html")
+    ap.add_argument("--template",
+                    help="template that produced --from-html. Chrome recovery "
+                         "aligns the two, so a template edited since that build "
+                         "will not match; pass the matching revision, e.g. "
+                         "`git show <sha>:app/template.html > /tmp/t.html`. The "
+                         "data always imports regardless — only chrome is lost.")
     ap.add_argument("--db", default="state.db", help="sqlite file to write")
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
@@ -262,7 +274,7 @@ def main() -> None:
         seed, chrome = seed_from_yaml(args.profile)
     else:
         print(f"reading inlined seed from {args.from_html}")
-        seed, chrome = seed_from_html(args.from_html)
+        seed, chrome = seed_from_html(args.from_html, args.template)
 
     write_db(seed, chrome, args.db, args.dry_run)
 
