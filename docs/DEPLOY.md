@@ -9,7 +9,10 @@
 > Treat it like your password manager, not like your portfolio site.
 >
 > - **Never put it on the public internet.** There is no login — anyone with
->   the URL sees everything.
+>   the URL sees everything, **and since the API is write-capable, anything
+>   that can reach it can also edit or delete your board.** SQLite is the
+>   source of truth now, so an unauthenticated write path is a data-loss path,
+>   not just a disclosure one.
 > - Anything reachable without a password is readable by everything on that
 >   network, including guests, IoT devices, and anyone on your VPN.
 > - The build sets `noindex, nofollow`, which discourages honest crawlers and
@@ -18,20 +21,35 @@
 > If you want it reachable from your phone, put it behind a VPN (Tailscale,
 > WireGuard) or an authenticating proxy — not behind a hard-to-guess URL.
 
-The output is one self-contained HTML file with no external requests, so
-every option below is just "serve a static file."
+The tracker is a small Python process over a SQLite file. Every option below
+is "run `state_server.py` somewhere and point a browser at it" — it serves the
+shell and the API from one origin, so there is nothing to configure between
+them.
+
+A deployment is four files in one directory:
+
+```
+index.html        built by build.py
+state_server.py   the server
+seedlib.py        validation — imported by the server, must sit alongside it
+state.db          your entire job search
+```
 
 ---
 
 ## Local only (recommended default)
 
 ```bash
-python3 build.py --profile profiles/private/me --serve
+python3 build.py --db state.db --out dist/index.html
+cp app/state_server.py app/seedlib.py state.db dist/
+python3 dist/state_server.py --root dist --port 8899
 ```
 
-Serves on `127.0.0.1:8899` — loopback only, unreachable from the rest of the
-network. Opening `dist/index.html` directly as a `file://` URL also works;
-localStorage persists per-origin, so saved state carries across rebuilds.
+Serves on `0.0.0.0:8899`; bind it to loopback with a firewall rule or an
+`ssh -L` tunnel if you want it unreachable from the rest of the network.
+
+`file://` no longer works: the page has no data of its own and cannot fetch
+`/api/seed` from a file origin.
 
 ## Home Assistant (`/local/`)
 
@@ -125,27 +143,42 @@ mount survives a restart or recreate either way.
 
 ## Static hosts (Netlify, Pages, S3)
 
-Technically trivial, and **the option most likely to leak your data.** Every
-one of these is public-by-default; a "private" repo does not make a deployed
-site private. Only do this behind the host's real access control (Cloudflare
-Access, Netlify password protection, an S3 bucket policy), and assume the URL
-will eventually be discovered.
+**No longer possible.** These serve files; they cannot run the API the page
+depends on, and there is nowhere for a write to land. Use anything that runs a
+process and keeps a writable volume — a container, an LXC, a small VM.
 
-For most people the honest answer is: keep it local, and use a VPN when you
-need it on your phone.
+This is a real loss of portability, and it was the deliberate price of making
+the board editable in place. If you want a portable artifact, copy `state.db`:
+it is small, it is the whole search, and any checkout of this repo can serve
+it.
+
+For most people the honest answer is still: keep it local, and use a VPN when
+you need it on your phone.
 
 ---
 
 ## Backing it up
 
-Two things live in different places:
+**Back up `state.db`. That is the whole job.** Roles, recruiters, contract
+leads, prep, and your saved statuses and notes are all in it. It is a single
+small file, so this is easy — and it is now the *only* copy, which makes it
+the thing to actually verify rather than assume.
 
-- **Your seed files** — `profiles/private/me/`. Back these up. They're small,
-  they're text, and they're the actual work. Consider a *private* git repo or
-  an encrypted folder.
-- **Your saved state** — status, stars, notes, flashcard progress. These live
-  in the **browser's localStorage**, not in any file. Clearing site data
-  loses them, and they don't follow you to another browser or device.
+```bash
+sqlite3 state.db ".backup /path/to/backups/state-$(date +%F).db"
+```
 
-If your notes matter, promote them into `roles.yml` periodically. The
-localStorage layer is designed for in-flight state, not as your record.
+Use `.backup` rather than copying the file: the server runs in WAL mode, and a
+plain `cp` of a database being written to can capture a torn page.
+
+Two things worth checking, not assuming:
+
+- **That the backup covers this file.** If the tracker runs in a container, a
+  host-level backup of a config repo does not necessarily include its data
+  volume.
+- **That you have more than one destination.** A nightly copy to one NAS is a
+  single point of failure for the entire search.
+
+Legacy YAML seeds under `profiles/private/` are no longer authoritative — the
+database has diverged from them the moment you edit anything in the browser.
+Keep them if you like, but back up the database.

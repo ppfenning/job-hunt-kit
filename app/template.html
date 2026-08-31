@@ -113,6 +113,47 @@
   .r-title .ti{font-size:14.5px;color:var(--ink-2)}
   .r-meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:7px 0 9px;font-family:var(--mono);font-size:11.5px}
   .chip{padding:2px 9px;border-radius:999px;font-weight:600}
+  /* ---- entity editing (SQLite-backed CRUD) ---- */
+  .bootfail{max-width:60ch;margin:18vh auto;padding:0 24px;font-family:inherit}
+  .bootfail h1{font-size:20px;margin:0 0 10px}
+  .bootfail p{color:var(--ink-2);line-height:1.55}
+  .bootfail .err{font-family:var(--mono);font-size:12px;color:var(--warn)}
+  .ent-add{font:inherit;font-size:12px;padding:5px 11px;border-radius:6px;cursor:pointer;
+    border:1px solid var(--accent);color:var(--accent-ink);background:transparent}
+  .ent-add:hover{background:color-mix(in srgb,var(--accent) 14%,transparent)}
+  .ent-edit{position:absolute;top:10px;right:10px;font:inherit;font-size:11px;line-height:1;
+    padding:4px 7px;border-radius:5px;cursor:pointer;border:1px solid var(--line);
+    color:var(--ink-3);background:var(--surface-2);opacity:0;transition:opacity .12s}
+  .role,.clead,.rcard{position:relative}
+  .role:hover .ent-edit,.clead:hover .ent-edit,.rcard:hover .ent-edit,
+  .ent-edit:focus{opacity:1}
+  .ed-back{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:50;
+    display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:5vh 16px}
+  .ed-modal{background:var(--surface);border:1px solid var(--line);border-radius:10px;
+    width:min(720px,100%);padding:20px 22px 16px;box-shadow:0 18px 50px rgba(0,0,0,.4)}
+  .ed-modal h3{margin:0 0 2px;font-size:16px}
+  .ed-modal .ed-sub{margin:0 0 16px;font-size:12px;color:var(--ink-3);font-family:var(--mono)}
+  .ed-f{margin-bottom:11px}
+  .ed-f label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.04em;
+    color:var(--ink-3);margin-bottom:3px}
+  .ed-f input,.ed-f textarea,.ed-f select{width:100%;box-sizing:border-box;font:inherit;
+    font-size:13px;padding:7px 9px;border-radius:6px;border:1px solid var(--line);
+    background:var(--surface-2);color:var(--ink)}
+  .ed-f textarea{min-height:64px;resize:vertical}
+  .ed-f textarea.mono{font-family:var(--mono);font-size:12px}
+  .ed-f .hint{font-size:11px;color:var(--ink-3);margin-top:3px}
+  .ed-err{background:var(--warn-soft);border:1px solid var(--warn);color:var(--ink);
+    border-radius:6px;padding:9px 11px;font-size:12px;margin-bottom:12px}
+  .ed-err ul{margin:6px 0 0;padding-left:18px}
+  .ed-actions{display:flex;gap:8px;align-items:center;margin-top:16px;
+    padding-top:14px;border-top:1px solid var(--line)}
+  .ed-actions .spacer{flex:1}
+  .ed-actions button{font:inherit;font-size:13px;padding:7px 14px;border-radius:6px;cursor:pointer}
+  .ed-save{border:1px solid var(--accent);background:var(--accent);color:#06222a;font-weight:600}
+  .ed-cancel{border:1px solid var(--line);background:transparent;color:var(--ink-2)}
+  .ed-del{border:1px solid var(--warn);background:transparent;color:var(--warn)}
+  .ed-save[disabled]{opacity:.55;cursor:progress}
+
   {{TRACK_CSS}}
   .r-meta .m{color:var(--ink-3)}
   .r-meta .m::before{content:"· ";color:var(--line)}
@@ -409,6 +450,7 @@
       <div class="seg" role="group" aria-label="Filter by track">
         {{TRACK_FILTERS}}
       </div>
+      <button class="ent-add" data-act="entadd" data-kind="roles">+ Add role</button>
       <select class="ctl" id="statusFilter" aria-label="Filter by status">
         <option value="all">Any status</option>
         <option value="none">Not started</option>
@@ -466,8 +508,24 @@
   </div>
 </div>
 
-<script>
-const SEED = /*__SEED__*/ null;
+<script type="module">
+// The corpus lives in SQLite and arrives over the API — nothing is baked into
+// this file. Top-level await (module scope) is what lets every declaration
+// below stay ordinary and synchronous instead of moving into a callback.
+const SEED = await (async () => {
+  try {
+    const r = await fetch("/api/seed", {cache: "no-store"});
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    return await r.json();
+  } catch (err) {
+    document.body.innerHTML =
+      '<div class="bootfail"><h1>Can’t reach the data API</h1>'
+      + '<p>This page reads its roles, recruiters and leads from <code>/api/seed</code>. '
+      + 'It has no copy of its own, so there is nothing to show until the server answers.</p>'
+      + '<p class="err">' + String(err && err.message || err) + '</p></div>';
+    throw err;
+  }
+})();
 const TRACKS = SEED.tracks || [];
 const TRACK_LABEL = Object.fromEntries(TRACKS.map(t => [t.id, t.label]));
 function trackLabel(id){ return TRACK_LABEL[id] || id; }
@@ -572,7 +630,7 @@ function card(r){
   const st=roleState(r.id);
   const scls=st.status?statusClass(st.status):"";
   const opts=`<option value="">Not started</option>`+STATUSES.map(s=>`<option value="${s}"${st.status===s?" selected":""}>${s}</option>`).join("");
-  return `<article class="role${st.starred?" starred":""}" data-id="${r.id}" data-track="${r.track}">
+  return `<article class="role${st.starred?" starred":""}" data-id="${r.id}" data-track="${r.track}"><button class="ent-edit" data-act="entedit" data-kind="roles" data-eid="${esc(r.id)}" title="Edit this entry" aria-label="Edit">✎ edit</button>
     <div class="rmain">
       <div class="r-fit"><span class="num">${r.fit.total}</span><span class="lbl">Fit</span></div>
       <div class="r-body">
@@ -820,7 +878,7 @@ function ctMatches(l){
 
 function ctLeadCard(l){
   const cell=(lab,val,cls)=>`<div class="cl-cell"><div class="cll">${lab}</div><div class="clv${cls?" "+cls:""}">${esc(val)}</div></div>`;
-  return `<article class="clead" data-ctid="${esc(l.id)}">
+  return `<article class="clead" data-ctid="${esc(l.id)}"><button class="ent-edit" data-act="entedit" data-kind="contractLeads" data-eid="${esc(l.id)}" title="Edit this entry" aria-label="Edit">✎ edit</button>
     <div class="cl-main">
       <div class="cl-title"><span class="co">${esc(l.co)}</span><span class="ro">${esc(l.role)}</span><span class="stagepill stage-${ctSlug(l.stage)}">${esc(l.stage)}</span></div>
       <div class="cl-meta"><span class="chan chan-${ctSlug(l.channel)}">${esc(l.channel)}</span><span class="m">first contact ${esc(l.date)}</span></div>
@@ -843,6 +901,7 @@ function renderContractLeads(){
       <select class="ctl" id="ctChanFilter" aria-label="Filter by channel">${chanOpts}</select>
       <select class="ctl" id="ctStageFilter" aria-label="Filter by stage">${stageOpts}</select>
       <input class="search" id="ctSearch" type="search" placeholder="Search company, role, contact, notes…" aria-label="Search contract leads">
+      <button class="ent-add" data-act="entadd" data-kind="contractLeads">+ Add lead</button>
     </div>
     <p class="ct-count" id="ctCount"></p><div id="ctBoard"></div>`;
   renderCtBoard();
@@ -950,7 +1009,7 @@ function rcCard(r,clash){
         ${others.length?`<span class="sflag">⚠ Also claimed by ${esc(others.join(", "))} — confirm which submission the client actually has on file before either one advances.</span>`:""}
       </div>`;
   }).join("");
-  return `<article class="rcard${stale?" rc-is-stale":""}" data-rcid="${esc(r.id)}">
+  return `<article class="rcard${stale?" rc-is-stale":""}" data-rcid="${esc(r.id)}"><button class="ent-edit" data-act="entedit" data-kind="recruiters" data-eid="${esc(r.id)}" title="Edit this entry" aria-label="Edit">✎ edit</button>
     <div class="rc-main">
       <div class="rc-title"><span class="nm">${esc(r.name)}</span><span class="fm">${esc(r.firm)}</span><span class="rc-pill rc-ty-${rcSlug(r.type)}">${esc(r.type)}</span><span class="rc-pill rc-tk-${rcSlug(r.track)}">${esc(r.track)}</span></div>
       <div class="rc-meta">
@@ -981,6 +1040,7 @@ function renderRecruiters(){
       <select class="ctl" id="rcTypeFilter" aria-label="Filter by recruiter type">${typeOpts}</select>
       <select class="ctl" id="rcTrackFilter" aria-label="Filter by track">${trackOpts}</select>
       <input class="search" id="rcSearch" type="search" placeholder="Search name, firm, client, notes…" aria-label="Search recruiters">
+      <button class="ent-add" data-act="entadd" data-kind="recruiters">+ Add recruiter</button>
     </div>
     <p class="rc-count" id="rcCount"></p><div id="rcBoard"></div>`;
   renderRcAlert();
@@ -1088,6 +1148,235 @@ document.addEventListener("pagehide",function(){
     clearTimeout(SYNC_PUSH_TIMERS[key]);
     doPush(key,SYNC_PENDING[key]);
   });
+});
+
+/* ===================== ENTITY EDITOR =====================
+   SQLite is the source of truth, so entities are created and edited here and
+   written straight back through /api/entity. There is no build step to fall
+   back on: whatever this writes is what the board is, on every device.
+
+   One generic modal drives every kind — a field spec per kind, six field
+   types, and the server's own validator as the backstop. Server-side
+   validation is deliberately the only correctness gate; duplicating those
+   rules here would just let the two drift. */
+
+const ED_KINDS = {
+  roles: {
+    label: "role", title: r => r.company || "role",
+    collection: () => ROLES, render: () => { render(); renderPipeline(); },
+    fields: [
+      {k:"id",     t:"text",   req:1, hint:"Stable slug. Keys your saved status — changing it starts the status over."},
+      {k:"company",t:"text",   req:1},
+      {k:"title",  t:"text",   req:1},
+      {k:"track",  t:"select", req:1, opts:() => TRACKS.map(x => x.id)},
+      {k:"tier",   t:"select", req:1, opts:["gold","silver","bronze"]},
+      {k:"source", t:"select", opts:["", "Ashby","Greenhouse","Lever","Direct","Wellfound",
+                                     "BuiltIn","LinkedIn","Recruiter","Referral","Other"],
+                   hint:"First five are authoritative — the employer posted it themselves."},
+      {k:"level",  t:"text"},   {k:"remote", t:"text"},
+      {k:"comp",   t:"text"},   {k:"compSort", t:"text", hint:"Number used for sorting."},
+      {k:"url",    t:"text"},
+      {k:"stack",  t:"list"},   {k:"points", t:"list"},
+      {k:"why",    t:"textarea", hint:"Inline HTML allowed — <span class='hl'>…</span> highlights."},
+      {k:"jd",     t:"textarea"}, {k:"cv", t:"textarea"},
+      {k:"basisTxt", t:"textarea"}, {k:"verif", t:"textarea"},
+      {k:"fit",    t:"json",  hint:"Per-weight scores, e.g. {\"stack\":30,\"level\":18}."},
+    ],
+  },
+  recruiters: {
+    label: "recruiter", title: r => r.name || "recruiter",
+    collection: () => RECRUITERS, render: () => renderRecruiters(),
+    fields: [
+      {k:"id",   t:"text", req:1, hint:"e.g. jane-doe-acme"},
+      {k:"name", t:"text", req:1},
+      {k:"firm", t:"text"},
+      {k:"type", t:"select", opts:["Agency","Internal","Platform"]},
+      {k:"track",t:"select", opts:["FTE","Contract","Both"]},
+      {k:"email",t:"text"}, {k:"phone", t:"text"}, {k:"linkedin", t:"text"},
+      {k:"lastContact", t:"date", hint:"Goes stale after 21 days."},
+      {k:"nextTouch",   t:"date"},
+      {k:"submissions", t:"json",
+       hint:"[{\"co\":\"Acme\",\"date\":\"2026-09-01\",\"outcome\":\"Submitted\"}] — two recruiters on one company raises the double-submission warning."},
+      {k:"notes", t:"textarea"},
+    ],
+  },
+  contractLeads: {
+    label: "contract lead", title: l => l.co || "lead",
+    collection: () => CONTRACT_LEADS, render: () => renderContract(),
+    fields: [
+      {k:"id",   t:"text", req:1},
+      {k:"co",   t:"text", req:1}, {k:"role", t:"text"},
+      {k:"channel", t:"select", opts:["Agency","Direct","Platform"]},
+      {k:"stage",   t:"select", opts:["Lead","Screening","Submitted","Interviewing",
+                                      "Negotiating","Won","Passed"]},
+      {k:"rate", t:"text", hint:"As quoted, e.g. $95/hr."},
+      {k:"structure", t:"select", opts:["","W-2","C2C","1099"]},
+      {k:"len",  t:"text"}, {k:"date", t:"date"},
+      {k:"contact", t:"text"},
+      {k:"notes", t:"textarea"},
+    ],
+  },
+};
+
+let ED = null;  // {kind, id, item, isNew}
+
+function edGet(kind, id){
+  return (ED_KINDS[kind].collection() || []).find(x => String(x.id) === String(id));
+}
+
+function edOpen(kind, id){
+  const spec = ED_KINDS[kind];
+  if (!spec) return;
+  const existing = id ? edGet(kind, id) : null;
+  ED = {kind, id: id || "", isNew: !existing,
+        item: existing ? JSON.parse(JSON.stringify(existing)) : {}};
+  edRender();
+}
+
+function edField(f, val){
+  const id = "edf-" + f.k;
+  const lab = `<label for="${id}">${esc(f.k)}${f.req ? " *" : ""}</label>`;
+  const hint = f.hint ? `<p class="hint">${esc(f.hint)}</p>` : "";
+  let input;
+  if (f.t === "select") {
+    const opts = (typeof f.opts === "function" ? f.opts() : f.opts) || [];
+    const list = opts.includes("") ? opts : [""].concat(opts);
+    input = `<select id="${id}" data-fk="${esc(f.k)}">` + list.map(o =>
+      `<option value="${esc(o)}"${String(val || "") === String(o) ? " selected" : ""}>${esc(o || "—")}</option>`
+    ).join("") + `</select>`;
+  } else if (f.t === "textarea") {
+    input = `<textarea id="${id}" data-fk="${esc(f.k)}">${esc(val == null ? "" : val)}</textarea>`;
+  } else if (f.t === "list") {
+    input = `<textarea id="${id}" data-fk="${esc(f.k)}" class="mono" placeholder="One per line">${esc((val || []).join("\n"))}</textarea>`;
+  } else if (f.t === "json") {
+    input = `<textarea id="${id}" data-fk="${esc(f.k)}" class="mono">${esc(val == null ? "" : JSON.stringify(val, null, 2))}</textarea>`;
+  } else {
+    const type = f.t === "date" ? "date" : "text";
+    input = `<input id="${id}" data-fk="${esc(f.k)}" type="${type}" value="${esc(val == null ? "" : val)}">`;
+  }
+  return `<div class="ed-f">${lab}${input}${hint}</div>`;
+}
+
+function edRender(errors){
+  if (!ED) return;
+  const spec = ED_KINDS[ED.kind];
+  const body = spec.fields.map(f => edField(f, ED.item[f.k])).join("");
+  const err = errors && errors.length
+    ? `<div class="ed-err"><b>The server rejected this.</b><ul>`
+      + errors.map(e => `<li>${esc(e)}</li>`).join("") + `</ul></div>` : "";
+  const wrap = document.createElement("div");
+  wrap.className = "ed-back";
+  wrap.innerHTML = `<div class="ed-modal" role="dialog" aria-modal="true" aria-label="Edit ${esc(spec.label)}">
+      <h3>${ED.isNew ? "New" : "Edit"} ${esc(spec.label)}</h3>
+      <p class="ed-sub">${esc(ED.kind)}${ED.isNew ? "" : " · " + esc(ED.id)}</p>
+      ${err}${body}
+      <div class="ed-actions">
+        ${ED.isNew ? "" : `<button class="ed-del" data-act="eddel">Delete</button>`}
+        <span class="spacer"></span>
+        <button class="ed-cancel" data-act="edcancel">Cancel</button>
+        <button class="ed-save" data-act="edsave">Save</button>
+      </div>
+    </div>`;
+  edClose(true);
+  document.body.appendChild(wrap);
+  const first = wrap.querySelector("input,textarea,select");
+  if (first) first.focus();
+}
+
+function edClose(keepState){
+  const back = document.querySelector(".ed-back");
+  if (back) back.remove();
+  if (!keepState) ED = null;
+}
+
+function edCollect(){
+  const spec = ED_KINDS[ED.kind];
+  const out = {};
+  let bad = null;
+  spec.fields.forEach(f => {
+    const el = document.getElementById("edf-" + f.k);
+    if (!el) return;
+    const raw = el.value;
+    if (f.t === "list") {
+      out[f.k] = raw.split("\n").map(s => s.trim()).filter(Boolean);
+    } else if (f.t === "json") {
+      if (!raw.trim()) { out[f.k] = f.k === "submissions" ? [] : {}; return; }
+      try { out[f.k] = JSON.parse(raw); }
+      catch (e) { bad = bad || `${f.k}: ${e.message}`; }
+    } else {
+      out[f.k] = raw;
+    }
+  });
+  return {item: out, bad};
+}
+
+async function edSave(){
+  const spec = ED_KINDS[ED.kind];
+  const {item, bad} = edCollect();
+  if (bad) { edRender(["invalid JSON in " + bad]); return; }
+  const newId = String(item.id || "").trim();
+  if (!newId) { edRender(["id is required"]); return; }
+
+  const btn = document.querySelector(".ed-save");
+  if (btn) { btn.disabled = true; btn.textContent = "Saving…"; }
+
+  try {
+    const r = await fetch("/api/entity/" + encodeURIComponent(ED.kind) + "/"
+                          + encodeURIComponent(newId),
+      {method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(item)});
+    const res = await r.json().catch(() => ({}));
+    if (!r.ok) { edRender(res.problems || [res.error || ("HTTP " + r.status)]); return; }
+
+    // Renaming an entity is a create plus a delete — the id is the primary key,
+    // so the row under the old id would otherwise linger as a duplicate.
+    if (!ED.isNew && newId !== ED.id) {
+      await fetch("/api/entity/" + encodeURIComponent(ED.kind) + "/"
+                  + encodeURIComponent(ED.id), {method:"DELETE"});
+    }
+
+    const coll = spec.collection();
+    const saved = res.item || item;
+    const at = coll.findIndex(x => String(x.id) === String(ED.id));
+    if (at >= 0) coll[at] = saved; else coll.push(saved);
+    edClose();
+    spec.render();
+  } catch (e) {
+    edRender(["could not reach the server: " + (e && e.message || e)]);
+  }
+}
+
+async function edDelete(){
+  const spec = ED_KINDS[ED.kind];
+  const item = edGet(ED.kind, ED.id);
+  const name = item ? spec.title(item) : ED.id;
+  if (!confirm(`Delete this ${spec.label} — ${name}?\n\nIt is removed from the database for every device. This cannot be undone here.`)) return;
+  try {
+    const r = await fetch("/api/entity/" + encodeURIComponent(ED.kind) + "/"
+                          + encodeURIComponent(ED.id), {method:"DELETE"});
+    if (!r.ok) { edRender(["delete failed: HTTP " + r.status]); return; }
+    const coll = spec.collection();
+    const at = coll.findIndex(x => String(x.id) === String(ED.id));
+    if (at >= 0) coll.splice(at, 1);
+    edClose();
+    spec.render();
+  } catch (e) {
+    edRender(["could not reach the server: " + (e && e.message || e)]);
+  }
+}
+
+document.addEventListener("click", e => {
+  const add = e.target.closest('[data-act="entadd"]');
+  if (add) { edOpen(add.dataset.kind, null); return; }
+  const ed = e.target.closest('[data-act="entedit"]');
+  if (ed) { edOpen(ed.dataset.kind, ed.dataset.eid); return; }
+  if (e.target.closest('[data-act="edsave"]')) { edSave(); return; }
+  if (e.target.closest('[data-act="eddel"]')) { edDelete(); return; }
+  if (e.target.closest('[data-act="edcancel"]')) { edClose(); return; }
+  if (e.target.classList && e.target.classList.contains("ed-back")) edClose();
+});
+
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && ED) edClose();
 });
 
 syncPull();

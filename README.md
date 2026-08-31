@@ -1,7 +1,8 @@
 # job-hunt-kit
 
-A private, self-hosted job-search tracker you seed with your own data and build
-into **one self-contained HTML file** — no server, no account, no telemetry.
+A private, self-hosted job-search tracker you seed with your own data and run
+as **one small Python process over a SQLite file** — no account, no telemetry,
+no third-party dependencies.
 
 Four views in one page:
 
@@ -12,14 +13,23 @@ Four views in one page:
 | **Contract** | Freelance/contract leads tracked separately, plus a rate-maths playbook |
 | **Recruiters** | A lightweight CRM that flags stale contacts and warns when two recruiters submit you to the same company |
 
-Status, stars, notes, and flashcard progress save to **your browser's
-localStorage** by default. Nothing is uploaded, because there is nothing to
-upload to. If localStorage isn't enough — the same tracker open on your phone
-and your desktop, wanting the same statuses on both — there's an optional tiny
-same-origin sync server (`app/state_server.py`, stdlib only) you can run
-instead of a plain static host; see [Cross-device sync](docs/DEPLOY.md#cross-device-sync)
-in the deploy guide. It's opt-in: skip it and the page behaves exactly as
-described above.
+**SQLite is the source of truth.** Roles, recruiters, contract leads and prep
+all live in `state.db`; the page ships as a shell with no data baked in,
+fetches `/api/seed` on load, and writes edits straight back through the same
+API. Adding a recruiter is a live call from the browser — there is no rebuild
+step in the loop, and every device sees the same board.
+
+`app/state_server.py` is that server: stdlib `http.server` + `sqlite3`, ~330
+lines, nothing to install. It serves the shell and the API from one origin.
+
+Per-viewer interaction state — which flashcards you've rated, your private
+notes on a lead — also syncs through it, with `localStorage` as the offline
+fallback.
+
+> **This means the server is required.** Earlier versions built a single
+> self-contained file that ran from `file://`; that is no longer true, because
+> a static file cannot be the thing you edit. If you want a frozen, portable
+> artifact, keep a copy of `state.db` — that is the whole search in one file.
 
 ---
 
@@ -27,42 +37,57 @@ described above.
 
 ```bash
 git clone <this repo> && cd job-hunt-kit
-python3 build.py --profile profiles/example --serve
+python3 scripts/migrate_to_sqlite.py --profile profiles/example --db state.db
+python3 build.py --db state.db --out dist/index.html
+cp app/state_server.py app/seedlib.py dist/ && cp state.db dist/
+python3 dist/state_server.py --root dist --port 8899
 ```
 
 Open <http://127.0.0.1:8899>. That's the fictional example profile — it exists
 so you can see every feature populated before you write a line of your own.
 
-Requires **Python 3.9+** and **PyYAML** (`pip install pyyaml`, or
-`apt install python3-yaml`). Nothing else.
+Requires **Python 3.9+**. PyYAML is needed *only* to import the example
+profile or your own legacy YAML seeds; the server and the tracker itself have
+no dependencies at all.
 
 ## Make it yours
 
+**Day to day, you don't touch files at all.** Every board has an `+ Add`
+button and every card an `✎ edit` control; saving writes through
+`/api/entity/<kind>/<id>` into SQLite. That is the intended way to run it.
+
+To start from something other than an empty database, import a YAML profile
+once:
+
 ```bash
-cp -r profiles/example profiles/private/me
+cp -r profiles/example profiles/private/me     # then edit the six YAML files
+python3 scripts/migrate_to_sqlite.py --profile profiles/private/me --db state.db
 ```
 
 `profiles/private/` is gitignored, so your real search never lands in version
-control. Then edit the six seed files:
+control. The importer is idempotent — re-running it upserts by `(kind, id)`
+rather than duplicating — but once the data is in SQLite, the database is
+authoritative and the YAML is just a starting point you can delete.
 
-| File | Holds |
-|---|---|
-| `profile.yml` | Who you are, what you're targeting, your tracks, your skill map |
-| `roles.yml` | The roles on your board |
-| `intel.yml` | Company research, keyed by company name |
-| `prep.yml` | Behavioral answers, flashcards, per-company and system-design prep |
-| `recruiters.yml` | Recruiter contacts and submissions |
-| `contract.yml` | Contract leads and the rate playbook |
-
-Rebuild whenever you change them:
+Already have a built tracker and lost the seeds? Import straight from the
+deployed page, which carries the whole corpus inline:
 
 ```bash
-python3 build.py --profile profiles/private/me --serve
+python3 scripts/migrate_to_sqlite.py --from-html dist/index.html --db state.db
 ```
 
-The build validates as it goes — duplicate role ids, a `track` that doesn't
-exist, a tier that isn't gold/silver/bronze, or company intel that matches no
-role all fail loudly rather than rendering a quietly broken board.
+**Validation moved to write time.** With no build step left to gate the data,
+`app/seedlib.py` runs on every API write: a duplicate role id, a `track` that
+doesn't exist, a tier that isn't gold/silver/bronze, or a recruiter `type`
+outside the enum comes back as a `422` with the specific problems listed, and
+the editor shows them above the form. Bad data cannot reach the board.
+
+Rebuild the shell only when the *template* or your profile chrome changes —
+not when the job search changes:
+
+```bash
+python3 build.py --db state.db            # or --from-api https://your.host
+```
 
 **Don't know where to start?** [`docs/SEEDING.md`](docs/SEEDING.md) walks
 through seeding from your résumé and a few job links — including doing it
@@ -82,30 +107,36 @@ Nothing about the tool is specific to engineering. In `profile.yml`:
 
 ## Deploying it somewhere
 
-It's a single file with no external requests, so anywhere that serves static
-HTML works — including `file://`. See [`docs/DEPLOY.md`](docs/DEPLOY.md) for
-local, Home Assistant, home-lab reverse-proxy, and cloud options, **and read
-the warning there first**: a seeded tracker contains your salary floor and your
-recruiters' contact details. Don't put it on the open internet.
+It needs somewhere that can run a Python process and keep a writable file —
+a container, a home-lab LXC, a small VM. Static hosts and `file://` no longer
+work, because the page has no data without the API. See
+[`docs/DEPLOY.md`](docs/DEPLOY.md) for the options, **and read the warning
+there first**: a seeded tracker contains your salary floor and your recruiters'
+contact details, and the API is now write-capable, so anything that can reach
+it can also change or delete your board. Put authentication in front of it, and
+don't put it on the open internet.
 
 ## Development
 
 ```bash
-python3 build.py --profile profiles/example          # build only
-node scripts/smoke_test.js <(...)                    # optional, see below
+python3 build.py --db state.db                       # rebuild the shell
+python3 scripts/migrate_to_sqlite.py --profile profiles/example --db /tmp/ex.db
 ```
 
-`scripts/smoke_test.js` executes the built page's JavaScript against a stubbed
-DOM and reports which panels rendered — it catches a half-seeded profile that
-would throw in a browser. It needs Node and the extracted `<script>` body:
+`scripts/smoke_test.js` executes the page's JavaScript against a stubbed DOM
+and reports which panels rendered — it catches the errors that only appear
+during a real render pass. Because the page now boots from `/api/seed`,
+`scripts/prep_smoke.py` first swaps that bootstrap for a seed snapshot (which
+also removes the top-level `await`, so the body runs under `new Function`):
 
 ```bash
-python3 - <<'PY'
-import re; t=open('dist/index.html',encoding='utf-8').read()
-open('/tmp/page.js','w',encoding='utf-8').write(re.search(r'<script>(.*)</script>',t,re.S).group(1))
-PY
+curl -s http://127.0.0.1:8899/api/seed > /tmp/seed.json
+python3 scripts/prep_smoke.py dist/index.html /tmp/seed.json /tmp/page.js
 node scripts/smoke_test.js /tmp/page.js
 ```
+
+`scripts/serve.py` is a static-only preview server and predates the API — it
+will serve the shell but every fetch will 404. Use `app/state_server.py`.
 
 ## License
 
