@@ -10,39 +10,51 @@ argument-hint: "<job posting URL> [optional: which application questions to answ
 board that already exists, and does the part seeding doesn't: drafting the
 answers to that posting's application form.
 
-Read `docs/SCHEMA.md` for the field reference before writing any YAML. The
-honesty rules in `seed-job-hunt` apply here in full — especially **never claim
-experience the résumé does not support**. Everything written here gets said out
-loud on a live call.
+Read `docs/SCHEMA.md` for the field reference and the API before writing
+anything. The honesty rules in `seed-job-hunt` apply here in full — especially
+**never claim experience the résumé does not support**. Everything written here
+gets said out loud on a live call.
 
 **Arguments provided:** $ARGUMENTS
 
 ## Ground truth (read these, don't reconstruct them)
 
-Establish these per profile rather than assuming — they move, and a stale copy
-in this file is worse than no copy:
+The board is a running deployment, not a set of files — SQLite behind
+`state_server.py`. Read the live state; never reconstruct it from memory or from
+the YAML under `profiles/`, which is a stale starting point at best.
 
-- **Which profile.** `profiles/private/<name>/`. Ask if it's ambiguous.
-- **The comp floor** — read it from that profile's `profile.yml` (`comp.okLabel`,
-  `comp.warnLabel`, and the `spec` chips). Do **not** carry a remembered number.
-  A floor quietly out of date will greenlight a lateral move as if it cleared
-  the bar, which is the single most expensive mistake this skill can make.
-- **The résumés** — whatever the profile was seeded from; the header comment at
-  the top of `profile.yml` usually names the file. These are the ONLY source
-  for claims about the person's experience.
-- **Voice conventions** — `positioning.md` in the profile directory, if present.
-- **Existing entries** — `roles.yml`, `intel.yml`, `recruiters.yml`.
+Establish these each run, because they move:
+
+- **The board's base URL.** Ask if it isn't obvious. Everything below is
+  `$BOARD/api/...`; add `-k` to curl for a LAN certificate.
+- **The comp floor** — `curl -sk $BOARD/api/config` and read `profile.compOkLabel`,
+  `profile.compWarnLabel`, and the `profile.spec` chips. Do **not** carry a
+  remembered number. A floor quietly out of date will greenlight a lateral move
+  as if it cleared the bar, which is the single most expensive mistake this
+  skill can make.
+- **The scoring rubric** — `fitWeights` from the same call. Per-board by design.
+- **The résumés** — whatever the board was seeded from. These are the ONLY
+  source for claims about the person's experience. Ask if you don't know which.
+- **Voice conventions** — ask, or read them from the wiring the caller supplied.
+- **Existing entries** — `curl -sk $BOARD/api/entity/roles`, `.../recruiters`,
+  `.../intel`.
 
 Two checks before spending anything on research:
 
-1. **Prior rejection or live pipeline.** Grep `roles.yml` and `recruiters.yml`
-   for the company. A company whose other team rejected them last month is a
-   fact to surface up front, not to bury. So is a role already being worked by
-   an agency recruiter — see *Duplicate submission* below.
-2. **Already tracked.** `grep -i 'company:' profiles/private/<name>/roles.yml | sort -u`.
-   Companies post several near-identical roles and the duplicate is easy to
-   miss. If it's there, decide whether this is genuinely distinct or an update
-   to the existing entry.
+1. **Prior rejection or live pipeline.**
+
+   ```bash
+   curl -sk $BOARD/api/entity/roles | python3 -c "import json,sys;[print(r['id'],'|',r['company']) for r in json.load(sys.stdin)]"
+   curl -sk $BOARD/api/entity/recruiters | python3 -c "import json,sys;[print(r['name'],'->',[s['co'] for s in r['submissions']]) for r in json.load(sys.stdin)]"
+   ```
+
+   A company whose other team rejected them last month is a fact to surface up
+   front, not to bury. So is a role already being worked by an agency recruiter
+   — see *Duplicate submission* below.
+2. **Already tracked.** Companies post several near-identical roles and the
+   duplicate is easy to miss. If it's already there, decide whether this is
+   genuinely distinct or an **update to the existing entry** — a `PUT` to the
+   same id updates in place, which is usually what you want.
 
 ## Step 1: Fetch the posting
 
@@ -124,7 +136,7 @@ search snippet is the kind of false precision that makes a board untrustworthy.
 ## Step 3: Score fit
 
 Score against the profile's own `fitWeights`, not a remembered rubric. Read the
-keys and maxima out of `profile.yml`; they're per-profile by design.
+keys and maxima out of `/api/config` (`fitWeights`); they're per-board by design.
 
 - Score comp against the floor you read in Ground truth. No posted range means
   a low comp score and `basis: warn`.
@@ -155,24 +167,39 @@ For each free-text question on the form, draft an answer in **their voice**:
 strongest possible answer would need an unsupported claim, say so rather than
 writing it. A claim the posting invites that they can't back is a real finding.
 
-## Step 5: Write the seed entries
+## Step 5: Write it to the board
 
-Append to the YAML in `profiles/private/<name>/`. Plain text — the data files
-are HTML-escaped for you, so write a literal `&`, `<`, `>` and never an entity.
-The one field that renders raw HTML is a role's `why` (use `<span class='hl'>`
-for emphasis).
+One `PUT` per entity, straight to the API. The write *is* the deploy — there is
+no build step and nothing to copy anywhere, and the change is live on every
+device the moment it returns.
 
-**`roles.yml`** — one entry. See `docs/SCHEMA.md` for the full field list.
+```bash
+curl -sk -X PUT "$BOARD/api/entity/roles/<id>" \
+  -H 'Content-Type: application/json' --data-binary @role.json
+```
+
+Text is HTML-escaped for you, so write a literal `&`, `<`, `>` and never an
+entity. The one field that renders raw HTML is a role's `why` (use
+`<span class='hl'>` for emphasis).
+
+**The server validates every write** and is the only correctness gate — there is
+no build left to catch anything. A bad entity comes back `422` with a `problems`
+list naming each fault. Read it and fix the entity; do not hand-check what the
+server already checks, and do not retry the same body hoping for a different
+answer.
+
+**`roles`** — one entity. See `docs/SCHEMA.md` for the full field list.
 The ones most often got wrong:
 
 - **`id`** — unique and **stable**. Saved status, stars, and notes key off it;
   changing an id silently loses that role's saved state.
-- **`company`** — must match the `intel.yml` key **exactly**, or the build fails.
+- **`company`** — must match the `intel` entity's id **exactly**, or the
+  company brief never renders against the role.
 - **`compSort`** — the **midpoint** of the posted range in $K, rounded
   (`$213–300K` → `256`). It drives the Sort-by-Comp view, so using the ceiling
   misorders the board.
 - **`source`** — where these facts came from, from the enum in `docs/SCHEMA.md`.
-  An unrecognised value fails the build. Record the **ATS**, not the aggregator
+  An unrecognised value is rejected on write. Record the **ATS**, not the aggregator
   you found it through; use `Recruiter` when the numbers are recruiter-stated
   and no posting was seen. It renders as a warning chip for secondhand sources,
   so an entry built on a sales figure is visibly distinct from one built on a
@@ -184,36 +211,43 @@ The ones most often got wrong:
 - **`jd`** is a 1–2 sentence third-person précis; **`points`** is 3–6 items of
   second-person tactical advice. Match the voice of the neighbouring entries.
 
-**`intel.yml`** — the company entry. Adding a role without its intel is the most
-common silent omission: they are one operation, not two. `stability` is where
-the honest risk read goes — name the mechanism (PE margin phase, customer
-concentration, RTO risk), not a vibe. Say which numbers are snippet-derived.
+**`intel`** — the company entry, `PUT /api/entity/intel/<Company Name>`. The id
+*is* the company name, matching the role's `company` exactly. Adding a role
+without its intel is the most common silent omission: they are one operation,
+not two. `stability` is where the honest risk read goes — name the mechanism
+(PE margin phase, customer concentration, RTO risk), not a vibe. Say which
+numbers are snippet-derived.
 
-**`prep.yml` → `companyPrep`** — only once they're actually interviewing. Carry
-unverified claims into `watchOut` with the `[CONFIRM: ...]` convention.
+**`companyPrep`** — only once they're actually interviewing. Carry unverified
+claims into `watchOut` with the `[CONFIRM: ...]` convention.
 
-**`recruiters.yml`** — if the role came in through an agency, seed the recruiter
-now, not later.
+**`recruiters`** — if the role came in through an agency, write the recruiter
+now, not later, with the submission recorded in `submissions[]`.
 
 > **Duplicate submission is the risk that costs the job.** Two agencies
 > submitting the same candidate to the same employer can get them rejected by
-> both. Before adding an agency-sourced role, check `recruiters.yml` for another
-> recruiter already working that company, and flag the collision rather than
-> quietly adding a second entry.
+> both. Before adding an agency-sourced role, check the existing recruiters for
+> another already working that company, and flag the collision rather than
+> quietly adding a second entry. The board runs this check itself and shows a
+> warning banner, but only over submissions that were actually recorded — so an
+> unrecorded submission is invisible to it, and an agency that won't name the
+> client cannot be conflict-checked at all.
 
-## Step 6: Build and report
+## Step 6: Verify and report
+
+Nothing to build and nothing to deploy — but confirm the write actually landed
+rather than trusting a `200`:
 
 ```bash
-python3 build.py --profile profiles/private/<name>
+curl -sk "$BOARD/api/entity/roles" | python3 -c "import json,sys;print([r['id'] for r in json.load(sys.stdin)])"
 ```
 
-The build validates ids, tracks, tiers, and intel keys, and fails loudly rather
-than rendering a broken page. Fix what it reports. Don't hand-verify what the
-build already checks.
-
-To deploy, follow `docs/DEPLOY.md` — and read its warning first. A seeded board
-holds a salary floor, negotiation anchors, recruiter names and email addresses,
-and private reads on companies currently interviewing. It has no login.
+> **Know what you just did.** The write is live immediately, for everyone with
+> access to that board. On a deployment without authentication — which is the
+> common case for this tool — a board holds a salary floor, negotiation anchors,
+> recruiter names and email addresses, and private reads on companies currently
+> interviewing. Recruiter contacts in particular are *third-party personal data*.
+> Say so before writing newly-added personal contacts, not after.
 
 Then report plainly:
 
@@ -229,8 +263,11 @@ Then report plainly:
   employer.** This skill drafts; they send. Applying is always their action.
 - **Never edit a résumé as a side effect** of processing a posting. If the
   posting reveals a gap, report it and let them decide.
-- **Never write seed files outside `profiles/private/`**, and never commit that
-  directory — it's gitignored on purpose.
+- **Never write to a board you were not asked to write to**, and never commit
+  `state.db` or anything under `profiles/private/` — both are gitignored on
+  purpose, and the database is the whole search.
+- **A `PUT` to an existing id overwrites it.** Read the entity first and merge;
+  don't send a partial body and silently drop fields that were already there.
 - When editing existing entries, grep to confirm the replacement hit every
   occurrence. The same claim recurs across `roles`, flashcards, and prep.
 - Report what research could not confirm. An unverified Glassdoor number
@@ -240,10 +277,12 @@ Then report plainly:
 
 | Mistake | Fix |
 |---|---|
-| Carrying a remembered comp floor | Read it from `profile.yml` every time |
+| Carrying a remembered comp floor | Read it from `/api/config` every time |
 | Missing the form's application questions | They're on the form, not the JD body; use `questions=true` |
 | Computing tier from the fit total | Tier is judgment; read neighbouring entries |
-| Adding a role with no `intel.yml` entry | One operation, not two — the build fails on it |
+| Adding a role with no `intel` entry | One operation, not two — the brief silently never renders |
+| Treating a 422 as a transport error | It's the validator; read `problems` and fix the entity |
+| Sending a partial body to an existing id | PUT replaces — read, merge, then write |
 | `compSort` from the top of the range | Use the midpoint |
 | HTML entities in escaped fields | Write plain `&`, `<`, `>` |
 | Renaming an `id` to tidy it up | Loses that role's saved state in the browser |

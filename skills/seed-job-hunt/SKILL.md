@@ -1,13 +1,38 @@
 ---
 name: seed-job-hunt
-description: Seed or extend a job-hunt-kit profile from a résumé, target criteria, and job-posting links. Use when someone wants to set up their job tracker, add roles to their board, research a company for it, or draft STAR answers and prep material into their seed files.
+description: Seed or extend a job-hunt-kit board from a résumé, target criteria, and job-posting links. Use when someone wants to set up their job tracker, add roles to their board, research a company for it, or draft STAR answers and prep material into it.
 ---
 
-# Seeding a job-hunt-kit profile
+# Seeding a job-hunt-kit board
 
-Turn a résumé, a sense of what someone wants, and some job links into the YAML
-seed files this tool builds from. Read `docs/SCHEMA.md` for the field
-reference before writing anything.
+Turn a résumé, a sense of what someone wants, and some job links into a
+populated board. Read `docs/SCHEMA.md` for the field reference and the API
+before writing anything.
+
+**Where the data goes depends on whether a board exists yet.**
+
+- **Starting from nothing** — write the six YAML files under
+  `profiles/private/<name>/`, import them once, and build the shell. YAML is
+  the right tool for bulk authoring; it stops being the source of truth the
+  moment the import finishes.
+
+  ```bash
+  python3 scripts/migrate_to_sqlite.py --profile profiles/private/<name> --db state.db
+  python3 build.py --db state.db --out dist/index.html
+  ```
+
+- **Extending a board that is already running** — write through the API, one
+  `PUT` per entity, and **do not** touch the YAML. It is a stale starting
+  point; anything you add there is invisible to the live board and will be
+  silently lost.
+
+  ```bash
+  curl -sk -X PUT "$BOARD/api/entity/roles/<id>" \
+    -H 'Content-Type: application/json' --data-binary @role.json
+  ```
+
+Ask which case you're in if it isn't obvious. Writing YAML at a live board is
+the failure mode worth avoiding: everything appears to work and nothing lands.
 
 ## The one rule that matters
 
@@ -30,10 +55,11 @@ Then record the answer, so the question isn't re-litigated later.
 
 ## Order of work
 
-Work in this order and build after each step, so there's something usable
-early rather than a perfect thing late.
+Work in this order, so there's something usable early rather than a perfect
+thing late. Against a live board each write shows up immediately; when seeding
+from scratch, import and build once at the end.
 
-### 1. `profile.yml`
+### 1. Profile and config
 
 Read the résumé first. Then establish, asking where it isn't inferable:
 
@@ -48,7 +74,7 @@ Read the résumé first. Then establish, asking where it isn't inferable:
 
 Report anything in the résumé you could not verify or found contradictory.
 
-### 2. `roles.yml`
+### 2. Roles
 
 For each posting URL: fetch the JD, then write the entry.
 
@@ -63,16 +89,17 @@ For each posting URL: fetch the JD, then write the entry.
 - `id` must be unique and stable — saved status keys off it. Never renumber
   existing ids.
 
-### 3. `intel.yml`
+### 3. Company intel
 
 Gold-tier companies first. Funding, headcount, Glassdoor **with sample size**,
 recent signal, and a stability read.
 
 Date every claim and name its source. Flag thin evidence as thin — a 2.6
 Glassdoor from 40 reviews is not the same fact as one from 400. Keys must
-match `roles[].company` exactly or the build fails.
+match each role's `company` exactly, or the brief never renders against the
+role.
 
-### 4. `prep.yml`
+### 4. Prep
 
 Interview the person for STAR stories rather than inventing them. Ask what
 actually happened, what broke, what they personally did, and what the measured
@@ -84,20 +111,22 @@ result was. The follow-up questions are where the good material comes from.
 - `companyPrep` — one per active loop; don't skip `askThem`
 - `sysdesign` — only if their field has them
 
-### 5. `recruiters.yml` / `contract.yml`
+### 5. Recruiters and contract leads
 
 Seed recruiters as soon as a second one is involved — the duplicate-submission
 warning is the whole point. Skip contract entirely unless they're open to it.
 
 ## Finishing
 
-Always end by building and reporting honestly:
+Validation runs on write, not at build time — `seedlib.py` checks ids, tracks,
+tiers, enums and fit keys on every `PUT` and on import, and returns the specific
+problems. Fix what it reports rather than hand-checking it yourself.
+
+Confirm what actually landed rather than trusting the last status code:
 
 ```bash
-python3 build.py --profile profiles/private/<name>
+curl -sk "$BOARD/api/seed" | python3 -c "import json,sys;d=json.load(sys.stdin);print({k:len(v) for k,v in d.items() if isinstance(v,(list,dict))})"
 ```
-
-The build validates ids, tracks, tiers, and intel keys. Fix what it reports.
 
 Then tell them, plainly:
 
@@ -107,5 +136,12 @@ Then tell them, plainly:
 - anything they still need to confirm themselves (comp bands, whether a
   posting is still live, whether a submission actually happened)
 
-Never write the seed files into a tracked directory. They belong in
-`profiles/private/`, which is gitignored.
+Never commit seed files or `state.db`. Bulk-authoring YAML belongs in
+`profiles/private/`, which is gitignored; the database is the whole search and
+belongs nowhere near git history.
+
+**Say what the board will hold before you fill it.** A seeded board carries a
+salary floor, negotiation anchors, recruiter names and email addresses, and
+private reads on companies currently interviewing — and recruiter contacts are
+third-party personal data. `docs/DEPLOY.md` covers where it can safely live;
+read its warning before deploying, not after.
