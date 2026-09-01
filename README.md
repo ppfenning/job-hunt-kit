@@ -95,6 +95,48 @@ conversationally with an AI assistant, which is how the tool was built.
 
 Full field reference: [`docs/SCHEMA.md`](docs/SCHEMA.md).
 
+## `jhk` — the command line
+
+The API is plain REST, so `curl` is a perfectly good client. `jhk` exists for
+the parts curl makes awkward:
+
+```bash
+export JHK_BOARD=https://jobs.lan     # default: http://127.0.0.1:8899
+export JHK_INSECURE=1                 # LAN self-signed certificate
+
+jhk ls                                # the whole board, summarized
+jhk ls recruiters
+jhk get roles jellyfish-staff-de      # raw JSON
+jhk set roles jellyfish-staff-de tier=gold compSort=230
+jhk status jellyfish-staff-de Interview
+jhk put recruiters jane-doe-acme -f jane.json
+jhk conflicts                         # duplicate-submission check
+```
+
+Three things earn it its place over raw curl:
+
+- **`set` and `put --merge` do read-modify-write for you.** A `PUT` replaces the
+  entity, so patching one field by hand means fetching it first — and forgetting
+  to means silently dropping every field you didn't resend.
+- **`status` edits one role in a shared blob.** The interaction overlay is a
+  single JSON document keyed by role id, so changing one status by hand is a
+  read-modify-write of the whole thing. It also refuses to set a status on a role
+  id that doesn't exist, which would otherwise attach to nothing.
+- **`conflicts` runs the duplicate-submission check** — two agencies submitting
+  the same candidate to one employer can get them rejected by both. It also
+  reports agency contacts with *no* submissions recorded, since anything they
+  submitted is invisible to the check.
+
+Validation failures come back as the server's own problem list, not an HTTP code:
+
+```
+$ jhk put recruiters jane -f bad.json
+jhk: the board rejected this entity:
+  - recruiters[jane]: type must be one of ['Agency', 'Internal', 'Platform']
+```
+
+Stdlib only, like the rest of the runtime.
+
 ## Tailoring it beyond a software search
 
 Nothing about the tool is specific to engineering. In `profile.yml`:

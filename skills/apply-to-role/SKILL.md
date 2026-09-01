@@ -25,27 +25,27 @@ the YAML under `profiles/`, which is a stale starting point at best.
 
 Establish these each run, because they move:
 
-- **The board's base URL.** Ask if it isn't obvious. Everything below is
-  `$BOARD/api/...`; add `-k` to curl for a LAN certificate.
-- **The comp floor** — `curl -sk $BOARD/api/config` and read `profile.compOkLabel`,
-  `profile.compWarnLabel`, and the `profile.spec` chips. Do **not** carry a
-  remembered number. A floor quietly out of date will greenlight a lateral move
-  as if it cleared the bar, which is the single most expensive mistake this
-  skill can make.
-- **The scoring rubric** — `fitWeights` from the same call. Per-board by design.
+- **The board's base URL.** Ask if it isn't obvious. Set `JHK_BOARD` (and
+  `JHK_INSECURE=1` for a LAN certificate) and use the `jhk` CLI at the repo
+  root; every command below assumes it. Raw `curl -sk $BOARD/api/...` works
+  identically if you'd rather.
+- **The comp floor** — `jhk config profile` and read `compOkLabel`,
+  `compWarnLabel`, and the `spec` chips. Do **not** carry a remembered number.
+  A floor quietly out of date will greenlight a lateral move as if it cleared
+  the bar, which is the single most expensive mistake this skill can make.
+- **The scoring rubric** — `jhk config fitWeights`. Per-board by design.
 - **The résumés** — whatever the board was seeded from. These are the ONLY
   source for claims about the person's experience. Ask if you don't know which.
 - **Voice conventions** — ask, or read them from the wiring the caller supplied.
-- **Existing entries** — `curl -sk $BOARD/api/entity/roles`, `.../recruiters`,
-  `.../intel`.
+- **Existing entries** — `jhk ls`.
 
 Two checks before spending anything on research:
 
 1. **Prior rejection or live pipeline.**
 
    ```bash
-   curl -sk $BOARD/api/entity/roles | python3 -c "import json,sys;[print(r['id'],'|',r['company']) for r in json.load(sys.stdin)]"
-   curl -sk $BOARD/api/entity/recruiters | python3 -c "import json,sys;[print(r['name'],'->',[s['co'] for s in r['submissions']]) for r in json.load(sys.stdin)]"
+   jhk ls roles
+   jhk conflicts    # who is already claiming which company
    ```
 
    A company whose other team rejected them last month is a fact to surface up
@@ -174,8 +174,9 @@ no build step and nothing to copy anywhere, and the change is live on every
 device the moment it returns.
 
 ```bash
-curl -sk -X PUT "$BOARD/api/entity/roles/<id>" \
-  -H 'Content-Type: application/json' --data-binary @role.json
+jhk put roles <id> -f role.json     # create, or replace wholesale
+jhk put roles <id> --merge -f patch.json    # merge onto what's there
+jhk set roles <id> tier=gold compSort=230   # patch a couple of fields
 ```
 
 Text is HTML-escaped for you, so write a literal `&`, `<`, `>` and never an
@@ -239,7 +240,7 @@ Nothing to build and nothing to deploy — but confirm the write actually landed
 rather than trusting a `200`:
 
 ```bash
-curl -sk "$BOARD/api/entity/roles" | python3 -c "import json,sys;print([r['id'] for r in json.load(sys.stdin)])"
+jhk ls roles
 ```
 
 > **Know what you just did.** The write is live immediately, for everyone with
@@ -266,8 +267,9 @@ Then report plainly:
 - **Never write to a board you were not asked to write to**, and never commit
   `state.db` or anything under `profiles/private/` — both are gitignored on
   purpose, and the database is the whole search.
-- **A `PUT` to an existing id overwrites it.** Read the entity first and merge;
-  don't send a partial body and silently drop fields that were already there.
+- **A `PUT` to an existing id overwrites it.** Use `jhk set` or
+  `jhk put --merge`; a partial body sent with a plain `put` silently drops every
+  field you didn't resend.
 - When editing existing entries, grep to confirm the replacement hit every
   occurrence. The same claim recurs across `roles`, flashcards, and prep.
 - Report what research could not confirm. An unverified Glassdoor number
@@ -282,7 +284,7 @@ Then report plainly:
 | Computing tier from the fit total | Tier is judgment; read neighbouring entries |
 | Adding a role with no `intel` entry | One operation, not two — the brief silently never renders |
 | Treating a 422 as a transport error | It's the validator; read `problems` and fix the entity |
-| Sending a partial body to an existing id | PUT replaces — read, merge, then write |
+| Sending a partial body to an existing id | PUT replaces — use `jhk set` or `put --merge` |
 | `compSort` from the top of the range | Use the midpoint |
 | HTML entities in escaped fields | Write plain `&`, `<`, `>` |
 | Renaming an `id` to tidy it up | Loses that role's saved state in the browser |

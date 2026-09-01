@@ -27,8 +27,8 @@ before writing anything.
   silently lost.
 
   ```bash
-  curl -sk -X PUT "$BOARD/api/entity/roles/<id>" \
-    -H 'Content-Type: application/json' --data-binary @role.json
+  export JHK_BOARD=https://your-board   # JHK_INSECURE=1 for a LAN cert
+  jhk put roles <id> -f role.json
   ```
 
 Ask which case you're in if it isn't obvious. Writing YAML at a live board is
@@ -125,7 +125,8 @@ problems. Fix what it reports rather than hand-checking it yourself.
 Confirm what actually landed rather than trusting the last status code:
 
 ```bash
-curl -sk "$BOARD/api/seed" | python3 -c "import json,sys;d=json.load(sys.stdin);print({k:len(v) for k,v in d.items() if isinstance(v,(list,dict))})"
+jhk ls              # counts and a one-line summary per entity
+jhk conflicts       # nothing seeded should already be double-claimed
 ```
 
 Then tell them, plainly:

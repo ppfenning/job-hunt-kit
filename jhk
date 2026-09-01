@@ -1,0 +1,361 @@
+#!/usr/bin/env python3
+"""jhk — command line for a running job-hunt-kit board.
+
+The board's API is plain REST over JSON, so `curl` works fine. This exists for
+the three things curl makes awkward:
+
+  * **Reading a board at a glance.** `jhk ls` is a summary, not a JSON dump.
+  * **Partial updates.** A PUT replaces the entity, so changing one field by
+    hand means read, merge, write — and forgetting the merge silently drops
+    every field you didn't resend. `jhk set` and `jhk put --merge` do it for you.
+  * **Status.** The interaction overlay is one blob keyed by role id, so
+    setting a single role's status by hand is a read-modify-write of the whole
+    thing. `jhk status` is one command.
+
+Plus `jhk conflicts`, which runs the duplicate-submission check — two agencies
+submitting the same candidate to one employer can get them rejected by both,
+and it is the failure this tool exists to prevent.
+
+Stdlib only, like the rest of the runtime.
+
+    export JHK_BOARD=https://jobs.lan     # default: http://127.0.0.1:8899
+    jhk ls
+    jhk get roles jellyfish-staff-de
+    jhk set roles jellyfish-staff-de tier=gold compSort=230
+    jhk status jellyfish-staff-de Interview
+    jhk put recruiters jane-doe-acme -f jane.json
+    jhk conflicts
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import ssl
+import sys
+import urllib.error
+import urllib.parse
+import urllib.request
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "app"))
+import seedlib  # noqa: E402
+
+DEFAULT_BOARD = "http://127.0.0.1:8899"
+STATUSES = ["Saved", "Applied", "Screening", "Interview", "Offer", "Passed",
+            "Not interested"]
+STATE_KEY = "jobtracker:v1"
+
+
+class Board:
+    """Thin HTTP client. Every error path ends in a sentence worth reading."""
+
+    def __init__(self, base: str, insecure: bool = False):
+        self.base = base.rstrip("/")
+        self.ctx = ssl._create_unverified_context() if insecure else None
+
+    def _request(self, method: str, path: str, body=None):
+        url = self.base + path
+        data = json.dumps(body).encode() if body is not None else None
+        req = urllib.request.Request(url, method=method, data=data,
+                                     headers={"Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(req, context=self.ctx, timeout=20) as r:
+                raw = r.read()
+                return json.loads(raw) if raw else {}
+        except urllib.error.HTTPError as e:
+            payload = e.read().decode(errors="replace")
+            try:
+                err = json.loads(payload)
+            except ValueError:
+                die(f"{method} {path} failed: HTTP {e.code}\n{payload[:400]}")
+            if err.get("problems"):
+                die("the board rejected this entity:\n  - "
+                    + "\n  - ".join(err["problems"]))
+            die(f"{method} {path} failed: HTTP {e.code} — {err.get('error', payload[:200])}")
+        except urllib.error.URLError as e:
+            reason = str(getattr(e, "reason", e))
+            if "CERTIFICATE_VERIFY_FAILED" in reason or "certificate" in reason.lower():
+                die(f"TLS verification failed for {self.base}.\n"
+                    f"  A LAN board usually has a self-signed certificate — "
+                    f"re-run with --insecure, or set JHK_INSECURE=1.")
+            die(f"cannot reach {self.base}: {reason}")
+
+    def get(self, path):
+        return self._request("GET", path)
+
+    def put(self, path, body):
+        return self._request("PUT", path, body)
+
+    def delete(self, path):
+        return self._request("DELETE", path)
+
+
+def die(msg: str, code: int = 1):
+    print(f"jhk: {msg}", file=sys.stderr)
+    raise SystemExit(code)
+
+
+def check_kind(kind: str) -> str:
+    if kind not in seedlib.ENTITY_KINDS:
+        die(f"unknown kind {kind!r}. One of: {', '.join(seedlib.ENTITY_KINDS)}")
+    return kind
+
+
+def coerce(value: str):
+    """`k=v` values are JSON when they parse as JSON, otherwise plain strings.
+
+    So `compSort=230` is a number, `tier=gold` is a string, and
+    `stack=["Python"]` is a list, without needing a separate flag per type.
+    """
+    try:
+        return json.loads(value)
+    except ValueError:
+        return value
+
+
+# ---------------------------------------------------------------- commands
+
+def cmd_ls(board: Board, args):
+    if args.kind:
+        kinds = [check_kind(args.kind)]
+        seed = None
+    else:
+        seed = board.get("/api/seed")
+        kinds = [k for k in seedlib.ENTITY_KINDS
+                 if seed.get(k) and k not in ("intel",)]
+
+    for kind in kinds:
+        items = (seed or {}).get(kind) if seed else board.get(f"/api/entity/{kind}")
+        if isinstance(items, dict):          # intel
+            items = [{"id": k, **v} for k, v in items.items()]
+        if not items:
+            print(f"{kind}: (empty)")
+            continue
+        print(f"{kind} ({len(items)})")
+        for it in items:
+            print("  " + summarize(kind, it))
+        print()
+
+
+def summarize(kind: str, it: dict) -> str:
+    i = str(it.get("id", "?"))
+    if kind == "roles":
+        return (f"{i:<34} {str(it.get('company','')):<18} "
+                f"{str(it.get('tier','')):<7} {str(it.get('comp','')):<16} "
+                f"{it.get('title','')}")
+    if kind == "recruiters":
+        subs = ", ".join(s.get("co", "?") for s in it.get("submissions") or []) or "-"
+        return (f"{i:<30} {str(it.get('firm','')):<18} "
+                f"{str(it.get('type','')):<9} last={str(it.get('lastContact','')):<11} {subs}")
+    if kind == "contractLeads":
+        return (f"{i:<24} {str(it.get('co','')):<32} "
+                f"{str(it.get('stage','')):<13} {str(it.get('rate','') or '-')}")
+    label = it.get("company") or it.get("q") or it.get("h") or it.get("title") or ""
+    return f"{i:<40} {str(label)[:60]}"
+
+
+def cmd_get(board: Board, args):
+    kind = check_kind(args.kind)
+    if args.id:
+        items = board.get(f"/api/entity/{kind}")
+        if isinstance(items, dict):
+            found = items.get(args.id)
+        else:
+            found = next((x for x in items if str(x.get("id")) == args.id), None)
+        if found is None:
+            die(f"no {kind} with id {args.id!r}")
+        print(json.dumps(found, indent=2, ensure_ascii=False))
+    else:
+        print(json.dumps(board.get(f"/api/entity/{kind}"), indent=2, ensure_ascii=False))
+
+
+def cmd_put(board: Board, args):
+    kind = check_kind(args.kind)
+    raw = open(args.file, encoding="utf-8").read() if args.file else sys.stdin.read()
+    if not raw.strip():
+        die("no JSON on stdin (use -f FILE, or pipe it in)")
+    try:
+        body = json.loads(raw)
+    except ValueError as e:
+        die(f"input is not valid JSON: {e}")
+    if not isinstance(body, dict):
+        die("entity body must be a JSON object")
+
+    if args.merge:
+        items = board.get(f"/api/entity/{kind}")
+        existing = (items.get(args.id) if isinstance(items, dict)
+                    else next((x for x in items if str(x.get("id")) == args.id), None))
+        if existing is None:
+            die(f"--merge needs an existing {kind} with id {args.id!r}")
+        body = {**existing, **body}
+
+    res = board.put(f"/api/entity/{kind}/{urllib.parse.quote(args.id)}", body)
+    print(f"{'created' if res.get('created') else 'updated'} {kind}/{args.id}")
+
+
+def cmd_set(board: Board, args):
+    kind = check_kind(args.kind)
+    patch = {}
+    for pair in args.pairs:
+        if "=" not in pair:
+            die(f"expected key=value, got {pair!r}")
+        k, v = pair.split("=", 1)
+        patch[k] = coerce(v)
+
+    items = board.get(f"/api/entity/{kind}")
+    existing = (items.get(args.id) if isinstance(items, dict)
+                else next((x for x in items if str(x.get("id")) == args.id), None))
+    if existing is None:
+        die(f"no {kind} with id {args.id!r} — use `jhk put` to create it")
+
+    board.put(f"/api/entity/{kind}/{urllib.parse.quote(args.id)}", {**existing, **patch})
+    print(f"updated {kind}/{args.id}: " + ", ".join(sorted(patch)))
+
+
+def cmd_rm(board: Board, args):
+    kind = check_kind(args.kind)
+    if not args.yes:
+        # Deleting an entity also orphans whatever the overlay stored against
+        # its id, and nothing here can put it back.
+        resp = input(f"Delete {kind}/{args.id} from the board? This cannot be "
+                     f"undone here. [y/N] ")
+        if resp.strip().lower() not in ("y", "yes"):
+            die("aborted", 130)
+    board.delete(f"/api/entity/{kind}/{urllib.parse.quote(args.id)}")
+    print(f"deleted {kind}/{args.id}")
+
+
+def cmd_config(board: Board, args):
+    cfg = board.get("/api/config")
+    if args.key:
+        if args.key not in cfg:
+            die(f"no config key {args.key!r}. Have: {', '.join(sorted(cfg))}")
+        print(json.dumps(cfg[args.key], indent=2, ensure_ascii=False))
+    else:
+        print(json.dumps(cfg, indent=2, ensure_ascii=False))
+
+
+def cmd_status(board: Board, args):
+    state = board.get("/api/state")
+    tracker = (state.get(STATE_KEY) or {}).get("value") or {}
+
+    if not args.status:
+        if args.role_id:
+            entry = tracker.get(args.role_id)
+            print(json.dumps(entry, indent=2) if entry
+                  else f"{args.role_id}: not started")
+        else:
+            for rid in sorted(tracker):
+                st = tracker[rid].get("status") or "not started"
+                print(f"  {rid:<36} {st}")
+        return
+
+    if args.status not in STATUSES:
+        die(f"unknown status {args.status!r}. One of: {', '.join(STATUSES)}")
+
+    roles = board.get("/api/entity/roles")
+    if not any(str(r.get("id")) == args.role_id for r in roles):
+        die(f"no role with id {args.role_id!r} — status would attach to nothing")
+
+    entry = dict(tracker.get(args.role_id) or {})
+    was = entry.get("status") or "not started"
+    entry["status"] = args.status
+    if args.note is not None:
+        entry["note"] = args.note
+    tracker[args.role_id] = entry
+    board.put(f"/api/state/{STATE_KEY}", tracker)
+    print(f"{args.role_id}: {was} -> {args.status}")
+
+
+def cmd_conflicts(board: Board, args):
+    """Two recruiters claiming the same company is the failure that costs the job."""
+    recruiters = board.get("/api/entity/recruiters")
+    by_company: dict[str, list] = {}
+    for r in recruiters:
+        for sub in r.get("submissions") or []:
+            co = (sub.get("co") or "").strip()
+            if co:
+                by_company.setdefault(co.lower(), []).append((co, r.get("name", r["id"])))
+
+    clashes = {k: v for k, v in by_company.items()
+               if len({name for _, name in v}) > 1}
+    if not clashes:
+        print(f"No conflicts — {len(by_company)} companies, "
+              f"each claimed by one recruiter.")
+    else:
+        print(f"⚠ {len(clashes)} company/companies claimed by more than one recruiter:")
+        for entries in clashes.values():
+            co = entries[0][0]
+            who = sorted({name for _, name in entries})
+            print(f"  {co}: {' · '.join(who)}")
+        print("\nConfirm which submission the client actually has on file before "
+              "either one advances.")
+
+    blind = [r.get("name", r["id"]) for r in recruiters
+             if not (r.get("submissions") or []) and (r.get("type") == "Agency")]
+    if blind:
+        # An agency with no recorded submission cannot be conflict-checked at
+        # all — the check above only sees what was written down.
+        print(f"\nNote: {len(blind)} agency contact(s) with no submissions recorded "
+              f"({', '.join(blind)}). Anything they have submitted is invisible to "
+              f"this check.")
+    return 1 if clashes else 0
+
+
+# ---------------------------------------------------------------- entry
+
+def main() -> None:
+    ap = argparse.ArgumentParser(
+        prog="jhk", description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--board", default=os.environ.get("JHK_BOARD", DEFAULT_BOARD),
+                    help=f"base URL (env JHK_BOARD, default {DEFAULT_BOARD})")
+    ap.add_argument("--insecure", action="store_true",
+                    default=bool(os.environ.get("JHK_INSECURE")),
+                    help="skip TLS verification (LAN self-signed certs)")
+    sub = ap.add_subparsers(dest="cmd", required=True)
+
+    p = sub.add_parser("ls", help="summarize the board")
+    p.add_argument("kind", nargs="?")
+    p.set_defaults(fn=cmd_ls)
+
+    p = sub.add_parser("get", help="print entities as JSON")
+    p.add_argument("kind"); p.add_argument("id", nargs="?")
+    p.set_defaults(fn=cmd_get)
+
+    p = sub.add_parser("put", help="upsert an entity from a file or stdin")
+    p.add_argument("kind"); p.add_argument("id")
+    p.add_argument("-f", "--file")
+    p.add_argument("--merge", action="store_true",
+                   help="merge onto the existing entity instead of replacing it")
+    p.set_defaults(fn=cmd_put)
+
+    p = sub.add_parser("set", help="patch fields on an existing entity")
+    p.add_argument("kind"); p.add_argument("id")
+    p.add_argument("pairs", nargs="+", metavar="key=value")
+    p.set_defaults(fn=cmd_set)
+
+    p = sub.add_parser("rm", help="delete an entity")
+    p.add_argument("kind"); p.add_argument("id")
+    p.add_argument("-y", "--yes", action="store_true")
+    p.set_defaults(fn=cmd_rm)
+
+    p = sub.add_parser("config", help="read board config (comp floor, fitWeights)")
+    p.add_argument("key", nargs="?")
+    p.set_defaults(fn=cmd_config)
+
+    p = sub.add_parser("status", help="get or set a role's tracked status")
+    p.add_argument("role_id", nargs="?"); p.add_argument("status", nargs="?")
+    p.add_argument("--note")
+    p.set_defaults(fn=cmd_status)
+
+    p = sub.add_parser("conflicts", help="duplicate-submission check")
+    p.set_defaults(fn=cmd_conflicts)
+
+    args = ap.parse_args()
+    board = Board(args.board, args.insecure)
+    raise SystemExit(args.fn(board, args) or 0)
+
+
+if __name__ == "__main__":
+    main()
