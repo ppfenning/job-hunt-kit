@@ -34,6 +34,11 @@ Establish these each run, because they move:
   A floor quietly out of date will greenlight a lateral move as if it cleared
   the bar, which is the single most expensive mistake this skill can make.
 - **The scoring rubric** — `jhk config fitWeights`. Per-board by design.
+- **The skill map** — `jhk config skillsHave` and `jhk config skillsGap`. This
+  is the record of which tools are genuinely theirs, which are exposure-only,
+  and — in each gap's `note` — the honest sentence to say out loud instead of
+  claiming it. It is maintained as the search runs, so read it rather than
+  reasoning from the résumé alone.
 - **The résumés** — whatever the board was seeded from. These are the ONLY
   source for claims about the person's experience. Ask if you don't know which.
 - **Voice conventions** — ask, or read them from the wiring the caller supplied.
@@ -166,6 +171,14 @@ For each free-text question on the form, draft an answer in **their voice**:
 **Never fabricate a metric, a tool they haven't used, or an outcome.** If the
 strongest possible answer would need an unsupported claim, say so rather than
 writing it. A claim the posting invites that they can't back is a real finding.
+
+> **Check the skill map, not just the résumé.** A posting that names something
+> in `skillsGap` is the case this matters for: the gap's `note` carries the
+> honest equivalent, phrased as a sentence they can say. Use that instead of
+> either claiming the tool or ignoring the question. The distinction the notes
+> draw — what was built deliberately versus what was run in production — is
+> exactly what has to survive a follow-up question on a live call, so preserve
+> it word for word rather than rounding it up.
 
 ## Step 5: Write it to the board
 
